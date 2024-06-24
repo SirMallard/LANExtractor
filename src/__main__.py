@@ -15,12 +15,12 @@ OUT_DIRECTORY = "dump"
 
 READ_GAME_FILES = True
 DUMP_JSON = True
-DUMP_ARCHIVE = False
+DUMP_ARCHIVE = True
 PICKLE_DATA = False
 LIMIT_FILE = True
 
-ARCHIVE_NAMES = ["audio.big.pc"]
-OUT_FILES = Format
+ARCHIVE_NAMES = ["cases_1_1.big.pc"]
+OUT_FILES = [Format.BIN]
 
 def read_game_files() -> dict[str, Archive]:
 	print("Reading game files")
@@ -135,6 +135,7 @@ def main():
 		dump_archives(archives)
 	if PICKLE_DATA:
 		write_pickle_file(archives)
+
 
 if __name__ == "__main__":
 	main()

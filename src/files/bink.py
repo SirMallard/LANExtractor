@@ -21,8 +21,8 @@ class BINK(BaseFile):
 	flags: HeaderFlags
 	num_audio_tracks: int
 	
-	def __init__(self, archive: Any, name_crc: int, offset: int = 0, size: int = 0) -> None:
-		super().__init__(archive, name_crc, offset, size)
+	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
+		super().__init__(archive, hash, offset, size)
 
 	def read_header(self, reader: BinaryReader) -> None:
 		reader_pos: int = reader.tell()

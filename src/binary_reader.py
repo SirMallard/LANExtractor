@@ -94,6 +94,9 @@ class BinaryReader():
 			case _:
 				return ""
 
+	def read_bytes(self, length: int) -> bytes:
+		return self.read(f"{length}s", length)
+
 	def read_pad(self, length: int) -> None:
 		self.read_chunk(length)
 

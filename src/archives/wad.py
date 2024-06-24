@@ -19,12 +19,12 @@ class Wad(Archive):
 		self._files = [None] * self._num_files # type: ignore
 
 		for i in range(self._num_files):
-			name_crc = reader.read_uint32()
+			hash = reader.read_uint32()
 			offset = reader.read_uint32()
 			size = reader.read_uint32()
 			name_table_offset = max(name_table_offset, offset + size)
 
-			file: BaseFile = self.create_file(reader, self, name_crc, offset, size)
+			file: BaseFile = self.create_file(reader, self, hash, offset, size)
 			self._files[i] = file
 
 		reader.seek(name_table_offset, 0)
