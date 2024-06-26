@@ -120,8 +120,8 @@ class FSB4(BaseFile):
 
 		reader.seek(reader_pos, 0)
 
-	def output_file_(self) -> list[tuple[int, int, str]]:
-		return list(map(lambda file : (file[0], file[1], join(self._name, file[2])), [sample.output_file() for sample in self.samples]))
+	def output_file(self) -> list[tuple[int, int, str]]:
+		return list(map(lambda file : (file[0], file[1], join(self._name, f"{file[2]}.{Format.formatToExtension(self.type)}")), [sample.output_file() for sample in self.samples]))
 
 	def dump_data(self) -> Any:
 		return super().dump_data() | {

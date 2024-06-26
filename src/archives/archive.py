@@ -1,10 +1,11 @@
-from enum import Enum
-from typing import Any
 from binary_reader import BinaryReader
 from files.base import BaseFile
 from utils.formats import Format, ArchiveType
 
 from os.path import getsize, splitext, join
+from enum import Enum
+from typing import Any
+from collections import Counter
 
 class Archive:
 	type: ArchiveType
@@ -41,19 +42,6 @@ class Archive:
 	def read_contents(self, reader: BinaryReader) -> None:
 		for file in self._files:
 			file.read_contents(reader)
-
-	def dump_data(self) -> Any:
-		return {
-			"name": self.name,
-			"file_name": self.file_name,
-			"file_path": self.file_path,
-			"out_path": self.out_path,
-			"out_json_path": self.out_json_path,
-			"size": self._size,
-			"num_files": self._num_files,
-			"headers": list({file.get_header() for file in self._files}),
-			"files": [file.dump_data() for file in self._files]
-		}
 	
 	def get_files(self) -> list[BaseFile]:
 		return self._files
@@ -70,3 +58,16 @@ class Archive:
 		newFile: BaseFile = newClass(*args)
 
 		return newFile
+
+	def dump_data(self) -> Any:
+		return {
+			"name": self.name,
+			"file_name": self.file_name,
+			"file_path": self.file_path,
+			"out_path": self.out_path,
+			"out_json_path": self.out_json_path,
+			"size": self._size,
+			"num_files": self._num_files,
+			"headers": Counter([file.get_type() for file in self._files]),
+			"files": [file.dump_data() for file in self._files]
+		}

@@ -1,6 +1,8 @@
-from typing import Any
+from utils.dictionaries import FILE_NAME_HASHES
 from utils.formats import Format
 from binary_reader import BinaryReader
+
+from typing import Any
 
 class BaseFile:
 	type: Format = Format.UNKNOWN
@@ -18,6 +20,8 @@ class BaseFile:
 		self._offset = offset
 		self._size = size
 
+		self._name = FILE_NAME_HASHES.get(str(self._hash), "unknown")
+
 	def read_header(self, reader: BinaryReader) -> None:
 		reader_pos: int = reader.tell()
 		reader.seek(self._offset, 0)
@@ -34,6 +38,11 @@ class BaseFile:
 
 	def get_header(self) -> str:
 		return self._header
+
+	def get_type(self) -> str:
+		if self.type != Format.UNKNOWN:
+			return self.type.name
+		return self._header
 	
 	def output_file(self) -> list[tuple[int, int, str]]:
 		return [(self._offset, self._size, self._name if len(self._name) > 0 else f"{self._hash}.{Format.formatToExtension(self.type)}")]
@@ -45,4 +54,5 @@ class BaseFile:
 			"size": self._size,
 			"header": self._header,
 			"name": self._name,
+			"type": self.type.name
 		}

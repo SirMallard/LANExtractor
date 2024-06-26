@@ -1,7 +1,8 @@
 from binary_reader import BinaryReader
 from archives.archive import Archive
 from files.base import BaseFile
-from utils.formats import ArchiveType
+from files.sges import SGES
+from utils.formats import ArchiveType, Format
 
 class Entry:
 		hash: int
@@ -65,4 +66,10 @@ class Big(Archive):
 				size = entry.size1 + entry.size2
 			file: BaseFile = self.create_file(reader, self, entry.hash, entry.offset, size)
 			file.read_header(reader)
+			if file.type == Format.SGES:
+				sges: SGES = file # type: ignore
+				sges.size1 = entry.size1
+				sges.size2 = entry.size2
+				sges.size3 = entry.size3
+
 			self._files[i] = file

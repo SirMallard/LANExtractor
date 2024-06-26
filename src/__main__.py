@@ -4,23 +4,24 @@ from archives.wad import Wad
 from binary_reader import BinaryReader
 from utils.formats import Format
 
-from json import dump
-import pickle
 from os import listdir, makedirs
 from os.path import join, splitext, dirname
+from json import dump
+import pickle
+from collections import Counter
 
 SRC_DIRECTORY = "X:\\SteamLibrary\\steamapps\\common\\L.A.Noire\\final\\pc"
 # SRC_DIRECTORY = "examples"
 OUT_DIRECTORY = "dump"
 
-READ_GAME_FILES = True
+READ_GAME_FILES = False
 DUMP_JSON = True
-DUMP_ARCHIVE = True
-PICKLE_DATA = False
-LIMIT_FILE = True
+DUMP_ARCHIVE = False
+PICKLE_DATA = True
+LIMIT_FILE = False
 
-ARCHIVE_NAMES = ["cases_1_1.big.pc"]
-OUT_FILES = [Format.BIN]
+ARCHIVE_NAMES = ["out.wad.pc"]
+OUT_FILES = Format
 
 def read_game_files() -> dict[str, Archive]:
 	print("Reading game files")
@@ -96,17 +97,14 @@ def dump_archives(archives: dict[str, Archive]):
 def dump_json_data(archives: dict[str, Archive]):
 	print("Dumping JSON data.")
 
-	# headers: list[str] = []
+	headers: list[str] = []
 
 	for archive_name, archive in archives.items():
 		if LIMIT_FILE and archive_name not in ARCHIVE_NAMES:
 			continue
 
 		print(f"\tDumping: {archive_name}...", end="")
-
-		# for file in archive.get_files():
-		# 	if file.get_header() not in headers:
-		# 		headers.append(file.get_header())
+		headers.extend([file.get_type() for file in archive.get_files()])
 
 		makedirs(archive.out_path, exist_ok = True)
 		with open(archive.out_json_path, "w") as out_file:
@@ -114,8 +112,8 @@ def dump_json_data(archives: dict[str, Archive]):
 
 		print("Done")
 
-	# with open(join(OUT_DIRECTORY, "headers.json"), "w") as file:
-	# 	dump(headers, file, indent="\t")
+	with open(join(OUT_DIRECTORY, "headers.json"), "w") as file:
+		dump(Counter(headers), file, indent="\t", sort_keys=True)
 
 def write_pickle_file(archives: dict[str, Archive]):
 	print("Writing pickle file...", end = "")

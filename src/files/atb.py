@@ -28,9 +28,9 @@ class ATB(BaseFile):
 
 		reader.seek(self._offset + 4 + reader.UINT16, 0)
 
-		for i in range(self.num_containers):
-			container: dict[str, Any] = self.read_object(reader)
-			self.containers[i] = container
+		# for i in range(self.num_containers):
+		# 	container: dict[str, Any] = self.read_object(reader)
+		# 	self.containers[i] = container
 
 		reader.seek(reader_pos, 0)
 

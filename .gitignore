@@ -1,5 +1,7 @@
 dump/
 tools/LANOIRE-Tools
+entries/
+segments/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -51,7 +51,7 @@ class Format(Enum):
 				return Format.PTM
 			case "TRLA":
 				return Format.TRLA
-			case "\xFF\xFB\x94\x04":
+			case "fffb9404":
 				return Format.MP3
 			case "RNM#":
 				return Format.RNM
@@ -82,6 +82,9 @@ class Format(Enum):
 			case Format.CBF1:
 				from files.cbf import CBF
 				return CBF
+			case Format.MP3:
+				from files.mp3 import MP3
+				return MP3
 			case _:
 				from files.base import BaseFile
 				return BaseFile
@@ -92,7 +95,7 @@ class Format(Enum):
 			case Format.SGES:
 				return "sges"
 			case Format.FSB4:
-				return "wav"
+				return "mp3"
 			case Format.BIN:
 				return "bin"
 			case Format.TRM:

@@ -141,7 +141,7 @@ CRC32_KEY = [
 	0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 ]
 
-with open(f"{__file__}\\..\\name_hashes_little.json", "r") as file:
+with open(f"{__file__}\\..\\name_hashes.json", "r") as file:
 	name_hashes = load(file)
 
 OBJECT_NAME_HASHES: dict[str, str] = name_hashes["object_name_hashes"]
