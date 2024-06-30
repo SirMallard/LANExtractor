@@ -4,7 +4,7 @@ from binary_reader import BinaryReader
 from files.base import BaseFile
 
 class CBF(BaseFile):
-	type: Format = Format.OGG
+	type: Format = Format.CBF1
 
 	num_containers: int
 	containers: list[dict[str, Any]]

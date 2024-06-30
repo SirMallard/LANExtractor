@@ -1,3 +1,4 @@
+from typing import Callable, Optional
 from archives.archive import Archive
 from archives.big import Big
 from archives.wad import Wad
@@ -14,13 +15,13 @@ SRC_DIRECTORY = "X:\\SteamLibrary\\steamapps\\common\\L.A.Noire\\final\\pc"
 # SRC_DIRECTORY = "examples"
 OUT_DIRECTORY = "dump"
 
-READ_GAME_FILES = False
+READ_GAME_FILES = True
 DUMP_JSON = True
 DUMP_ARCHIVE = False
-PICKLE_DATA = True
-LIMIT_FILE = False
+PICKLE_DATA = False
+LIMIT_FILE = True
 
-ARCHIVE_NAMES = ["out.wad.pc"]
+ARCHIVE_NAMES = ["vehicles.big.pc"]
 OUT_FILES = Format
 
 def read_game_files() -> dict[str, Archive]:
@@ -83,14 +84,20 @@ def dump_archives(archives: dict[str, Archive]):
 				if file_data.type not in OUT_FILES:
 					continue
 
-				files: list[tuple[int, int, str]] = file_data.output_file()
-				for (offset, size, name) in files:
-					out_path: str = join(archive.out_path, name) # type: ignore
+				reader: BinaryReader = BinaryReader(archive_file)
+
+				files: list[tuple[int, int, str, Optional[Callable[[BinaryReader], bytes]]]] = file_data.output_file()
+				for (offset, size, name, callback) in files:
+					out_path: str = join(archive.out_path, name)
 					makedirs(dirname(out_path), exist_ok = True)
 					
 					with open(out_path, "wb") as out_file:
-						archive_file.seek(offset, 0)
-						out_file.write(archive_file.read(size))
+						if callback != None:
+							data: bytes = callback(reader)
+							out_file.write(data)
+						else:
+							reader.seek(offset, 0)
+							out_file.write(reader.read_chunk(size))
 
 		print("Done")
 
@@ -136,4 +143,13 @@ def main():
 
 
 if __name__ == "__main__":
+	# from gui.window import Window
+	# from PyQt6.QtWidgets import QApplication
+	# app: QApplication = QApplication([])
+
+	# window: Window = Window()
+	# window.show()
+
+	# app.exec()
+
 	main()

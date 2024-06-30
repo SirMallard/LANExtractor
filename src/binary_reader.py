@@ -102,4 +102,8 @@ class BinaryReader():
 
 	def read_chunk(self, length: int) -> bytes:
 		return self._file.read(length)
+
+	def read_file(self) -> bytes:
+		self.seek(0, 0)
+		return self._file.read()
 		

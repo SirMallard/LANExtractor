@@ -67,6 +67,9 @@ class Format(Enum):
 			case Format.FSB4:
 				from files.fsb4 import FSB4
 				return FSB4
+			case Format.TRM:
+				from files.trm import TRM
+				return TRM
 			case Format.OGG:
 				from files.ogg import OGG
 				return OGG
@@ -113,7 +116,7 @@ class Format(Enum):
 			case Format.FEV1:
 				return "fev"
 			case Format.CBF1:
-				return "cotents"
+				return "contents"
 			case Format.PTM:
 				return "pack"
 			case Format.TRLA:

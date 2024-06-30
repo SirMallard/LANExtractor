@@ -2,7 +2,7 @@ from utils.dictionaries import FILE_NAME_HASHES
 from utils.formats import Format
 from binary_reader import BinaryReader
 
-from typing import Any
+from typing import Any, Callable, Optional
 
 class BaseFile:
 	type: Format = Format.UNKNOWN
@@ -40,12 +40,14 @@ class BaseFile:
 		return self._header
 
 	def get_type(self) -> str:
-		if self.type != Format.UNKNOWN:
+		if self.type == Format.SGES:
+			return f"{self.type.name}[{self.file.get_type()}]" # type: ignore
+		elif self.type != Format.UNKNOWN:
 			return self.type.name
 		return self._header
 	
-	def output_file(self) -> list[tuple[int, int, str]]:
-		return [(self._offset, self._size, self._name if len(self._name) > 0 else f"{self._hash}.{Format.formatToExtension(self.type)}")]
+	def output_file(self) -> list[tuple[int, int, str, Optional[Callable[[BinaryReader], bytes]]]]:
+		return [(self._offset, self._size, self._name if len(self._name) > 0 else f"{self._hash}.{Format.formatToExtension(self.type)}", None)]
 	
 	def dump_data(self) -> Any:
 		return {
