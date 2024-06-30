@@ -1,0 +1,3 @@
+[submodule "tools/LANoireTools"]
+	path = tools/LANoireTools
+	url = https://github.com/SirMallard/LANoireTools
