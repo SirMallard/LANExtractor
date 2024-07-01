@@ -48,7 +48,7 @@ class BaseFile:
 	
 	def output_file(self) -> list[tuple[int, int, str, Optional[Callable[[BinaryReader], bytes]]]]:
 		return [(self._offset, self._size, self._name if len(self._name) > 0 else f"{self._hash}.{Format.formatToExtension(self.type)}", None)]
-	
+
 	def dump_data(self) -> Any:
 		return {
 			"hash": self._hash,

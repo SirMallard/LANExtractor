@@ -46,7 +46,8 @@ class Archive:
 	def get_files(self) -> list[BaseFile]:
 		return self._files
 	
-	def create_file(self, reader: BinaryReader, archive: Any, hash: int, offset: int, size: int) -> BaseFile:
+	@staticmethod
+	def create_file(reader: BinaryReader, archive: Any, hash: int, offset: int, size: int) -> BaseFile:
 		file = BaseFile(archive, hash, offset, size)
 		
 		file.read_header(reader)

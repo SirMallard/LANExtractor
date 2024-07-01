@@ -85,6 +85,9 @@ class Format(Enum):
 			case Format.CBF1:
 				from files.cbf import CBF
 				return CBF
+			case Format.PTM:
+				from files.ptm import PTM
+				return PTM
 			case Format.MP3:
 				from files.mp3 import MP3
 				return MP3

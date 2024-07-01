@@ -1,6 +1,7 @@
 from io import BytesIO
 from typing import Any, Callable, Optional
 from zlib import decompress
+from archives.archive import Archive
 from utils.formats import Format
 from binary_reader import BinaryReader
 from files.base import BaseFile
@@ -36,6 +37,8 @@ class SGES(BaseFile):
 	data_offset: int
 	uobjects: list[int]
 	chunks: list[Chunk]
+	compressed_size: int = 0
+	uncompressed_size: int = 0
 
 	data: bytes
 	file: BaseFile
@@ -84,11 +87,14 @@ class SGES(BaseFile):
 			
 			if chunk.flags & 0x10:
 				data.write(decompress(reader.read_chunk(chunk.size), -15))
+				self.compressed_size += chunk.size
 			else:
 				data.write(reader.read_chunk(self.size1))
 
+		self.uncompressed_size = data.__sizeof__()
+
 		file_reader: BinaryReader = BinaryReader(data)
-		self.file = self._archive.create_file(file_reader, self, self._hash, 0, data.__sizeof__())
+		self.file = Archive.create_file(file_reader, self, self._hash, 0, self.uncompressed_size)
 		self.file.read_header(file_reader)
 		self.file.read_contents(file_reader)
 

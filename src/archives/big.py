@@ -64,7 +64,7 @@ class Big(Archive):
 			size: int = entry.size3
 			if size == 0:
 				size = entry.size1 + entry.size2
-			file: BaseFile = self.create_file(reader, self, entry.hash, entry.offset, size)
+			file: BaseFile = Archive.create_file(reader, self, entry.hash, entry.offset, size)
 			file.read_header(reader)
 			if file.type == Format.SGES:
 				sges: SGES = file # type: ignore
