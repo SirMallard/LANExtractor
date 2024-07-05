@@ -59,6 +59,7 @@ L.A. Noire uses two archive formats, one WAD file, which is very easy to read an
 - https://web.archive.org/web/20230817132639/https://forum.xentax.com/viewtopic.php?uid=34229&f=29&t=6797&start=0
 - https://pastebin.com/MucRkpht
 - https://pastebin.com/HMJhvKLS
+- https://forum.xen-tax.com/viewtopic.php@t=6623&start=210.html
 
 There are 30 game files in total:
 - `animationsets.big.pc`
@@ -86,8 +87,8 @@ There are 30 game files in total:
 - `populated.streamingattributes.dev.big.pc`
 - `props.big.pc`
 - `props.high.big.pc`
-- `reftextures_characters.big.pc`
-- `reftextures_populated.big.pc`
+- `reftextures_characters.big.pc` - file table in `out.wad.pc`
+- `reftextures_populated.big.pc` - file table in `out.wad.pc`
 - `shopfronts.big.pc`
 - `ui_streamed_textures.big.pc`
 - `vehicles.big.pc`
@@ -123,23 +124,37 @@ There are many different files in the archives, some which seem random proprieta
 Most of the video tracks do not contain an audio track, instead relying on another audio file.
 
 ### SGES
+`Segmented Compressed File - Models`
 The general format for all models and images. Not much too say apart from that it seems proprietary and therefore needs more work to understand the structure. A majority of the game files are this, which presumably includes world models and images, LODs, vehicles, characters, animation data and others.
 
 ### FSB4
+`FMOD Sample Bank - Audio`
 FSB files are proprietary but the information to read them is available. Each file can contain one or more audio tracks, which can be taken out individually and then opened using VLC.
 
 - https://web.archive.org/web/20160622000928/https://www.fmod.org/questions/question/forum-4928/
 - https://github.com/gdawg/fsbext/blob/master/src/fsb.h
 
 ### BINK
+`Video`
 BINK is proprietary but header information exists, as well as being openable by VLC. Not every BINK file contains an audio track.
 - https://wiki.multimedia.cx/index.php/Bink_Container
 
 ### OGG
+`Audio`
 Not sure why this exists over FSB4, but it can be easily opened with VLC.
 - https://en.wikipedia.org/wiki/Ogg
 - https://fileformats.fandom.com/wiki/Ogg
 
 ### DDS
+`Direct Draw Surface - Texture`
 Only found in [`out.wad.pc`](#wad), presumably the rest are compressed in the [`sges`](#sges) files.
 - https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide#dds-file-layout
+
+### TRM
+`Models`
+Found throughout the files, mostly in [`SGES`](#sges) files as compressed, but sometimes standalone, which contains model data including [`PTM`](#ptm) files which are possibly bones?
+
+### PTM
+`Bone?`
+In most [`SGES`](#sge) files.
+- https://forum.xen-tax.com/viewtopic.php@t=6623&start=195.html

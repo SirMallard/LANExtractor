@@ -1,7 +1,6 @@
 from typing import Any
 from enum import IntFlag
 from utils.formats import Format
-from binary_reader import BinaryReader
 from files.base import BaseFile
 
 class HeaderFlags(IntFlag):
@@ -64,41 +63,47 @@ class DDS(BaseFile):
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
 
-	def read_header(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
-		reader.seek(self._offset, 0)
+	def read_header(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
+		self._reader.seek(self._offset, 0)
 
-		self._header = reader.read_string(4)
-		self.structure_size = reader.read_uint32()
-		self.flags = HeaderFlags(reader.read_uint32())
-		self.height = reader.read_uint32()
-		self.width = reader.read_uint32()
-		self.pitch_size = reader.read_uint32()
-		self.depth = reader.read_uint32()
-		self.mip_map_count = reader.read_uint32()
+		self._header = self._reader.read_string(4)
+		self.structure_size = self._reader.read_uint32()
+		self.flags = HeaderFlags(self._reader.read_uint32())
+		self.height = self._reader.read_uint32()
+		self.width = self._reader.read_uint32()
+		self.pitch_size = self._reader.read_uint32()
+		self.depth = self._reader.read_uint32()
+		self.mip_map_count = self._reader.read_uint32()
 
-		reader.read_chunk(44)
+		self._reader.read_chunk(44)
 
-		self.pixel_format.structure_size = reader.read_uint32()
-		self.pixel_format.flags = PixelFormatFlags(reader.read_uint32())
-		self.pixel_format.code = reader.read_uint32()
-		self.pixel_format.rgb_bit_count = reader.read_uint32()
-		self.pixel_format.red_bit_mask = reader.read_uint32()
-		self.pixel_format.green_bit_mask = reader.read_uint32()
-		self.pixel_format.blue_bit_mask = reader.read_uint32()
-		self.pixel_format.alpha_bit_mask = reader.read_uint32()
+		self.pixel_format.structure_size = self._reader.read_uint32()
+		self.pixel_format.flags = PixelFormatFlags(self._reader.read_uint32())
+		self.pixel_format.code = self._reader.read_uint32()
+		self.pixel_format.rgb_bit_count = self._reader.read_uint32()
+		self.pixel_format.red_bit_mask = self._reader.read_uint32()
+		self.pixel_format.green_bit_mask = self._reader.read_uint32()
+		self.pixel_format.blue_bit_mask = self._reader.read_uint32()
+		self.pixel_format.alpha_bit_mask = self._reader.read_uint32()
 
-		self.surface_complexity = SurfaceComplexity(reader.read_uint32())
-		self.surface_complexity2 = SurfaceComplexity2(reader.read_uint32())
+		self.surface_complexity = SurfaceComplexity(self._reader.read_uint32())
+		self.surface_complexity2 = SurfaceComplexity2(self._reader.read_uint32())
 
-		reader.read_chunk(12)
+		self._reader.read_chunk(12)
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
-	def read_contents(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
+	def read_contents(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
 	def dump_data(self) -> Any:
 		return super().dump_data() | {

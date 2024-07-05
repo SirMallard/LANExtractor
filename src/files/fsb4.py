@@ -1,17 +1,15 @@
-from typing import Any, Callable, Optional
-from utils.formats import Format
 from binary_reader import BinaryReader
-from files.base import BaseFile
+from utils.formats import Format
+from files.base import BaseArchiveFile, BaseFile
 
+from typing import Any
 from os.path import join
 
-class Sample():
+class Sample(BaseFile):
 	_file: Any
-	_offset: int
-	_size: int
 
 	header_len: int
-	name: str
+	_name: str
 
 	length: int
 	compressed_length: int
@@ -32,48 +30,57 @@ class Sample():
 	var_pan: int
 
 	def __init__(self, file: Any, offset: int = 0) -> None:
+		super().__init__(file.get_archive(), 0, offset, 0)
 		self._file = file
 		self._offset = offset
+		self._parent_fil = file
 
-	def read_header(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
+	def read_header(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
 
-		self.header_len = reader.read_uint16()
-		self.name = reader.read_string(30).rstrip("\x00")
+		self.header_len = self._reader.read_uint16()
+		self._name = self._reader.read_string(30).rstrip("\x00")
 
-		self.length = reader.read_uint32()
-		self.compressed_length = reader.read_uint32()
+		self.length = self._reader.read_uint32()
+		self.compressed_length = self._reader.read_uint32()
 		self._size = self.compressed_length
-		self.loop_start = reader.read_uint32()
-		self.loop_end = reader.read_uint32()
+		self.loop_start = self._reader.read_uint32()
+		self.loop_end = self._reader.read_uint32()
 
-		self.mode = reader.read_uint32()
-		self.def_freq = reader.read_int32()
-		self.def_vol = reader.read_uint16()
-		self.def_pan = reader.read_int16()
-		self.def_pri= reader.read_uint16()
-		self.num_channels = reader.read_uint16()
+		self.mode = self._reader.read_uint32()
+		self.def_freq = self._reader.read_int32()
+		self.def_vol = self._reader.read_uint16()
+		self.def_pan = self._reader.read_int16()
+		self.def_pri= self._reader.read_uint16()
+		self.num_channels = self._reader.read_uint16()
 
-		self.min_dist = reader.read_float32()
-		self.max_dist = reader.read_float32()
-		self.var_freq = reader.read_int32()
-		self.var_vol = reader.read_uint16()
-		self.var_pan = reader.read_int16()
+		self.min_dist = self._reader.read_float32()
+		self.max_dist = self._reader.read_float32()
+		self.var_freq = self._reader.read_int32()
+		self.var_vol = self._reader.read_uint16()
+		self.var_pan = self._reader.read_int16()
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
-	def output_file(self) -> tuple[int, int, str]:
-		return (self._offset, self._size, self.name)
+	def output_file(self) -> list[tuple[int, int, str, BinaryReader]]:
+		if not self._open or self._reader == None:
+			return []
+		
+		return [(self._offset, self._size, self._name, self._reader)]
 
 	def dump_data(self) -> Any:
 		return {
-			"name": self.name,
+			"name": self._name,
 			"length": self.length,
 			"compressed_length": self.compressed_length
 		}
 
-class FSB4(BaseFile):
+class FSB4(BaseArchiveFile):
 	type: Format = Format.FSB4
+	contains_sub_files: bool = True
 
 	num_samples: int
 	shdr_size: int
@@ -84,44 +91,55 @@ class FSB4(BaseFile):
 	hash: int
 	guid: Any
 
-	samples: list[Sample]
-
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
 
-	def read_header(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
-		reader.seek(self._offset, 0)
+	def read_header(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
+		self._reader.seek(self._offset, 0)
 
-		self._header = reader.read_string(4)
-		self.num_samples = reader.read_int32()
+		self._header = self._reader.read_string(4)
+		self.num_samples = self._reader.read_int32()
 
-		self.shdr_size = reader.read_int32()
-		self.data_size = reader.read_int32()
+		self.shdr_size = self._reader.read_int32()
+		self.data_size = self._reader.read_int32()
 
-		self.version = reader.read_uint32()
-		self.flags = reader.read_uint32()
-		self.hash = reader.read_uint64()
-		self.guid = reader.read_chunk(16)
+		self.version = self._reader.read_uint32()
+		self.flags = self._reader.read_uint32()
+		self.hash = self._reader.read_uint64()
+		self.guid = self._reader.read_chunk(16)
 
-		self.samples = [None] * self.num_samples # type: ignore
+		self._reader.seek(reader_pos, 0)
 
-		reader.seek(reader_pos, 0)
+	def read_contents(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
 
-	def read_contents(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
+		self._reader.seek(self._offset + 48, 0)
 
-		reader.seek(self._offset + 48, 0)
+		self._files = [None] * self.num_samples # type: ignore
+		self._file_hashes = {}
 		for i in range(self.num_samples):
-			sample: Sample = Sample(self, reader.tell())
-			sample.read_header(reader)
-			self.samples[i] = sample
-			# reader.seek(sample.compressed_length, 1)
+			sample: Sample = Sample(self, self._reader.tell())
+			sample.open(self._reader)
+			sample.read_header()
+			self._files[i] = sample
+			self._file_hashes[i] = sample
+			self._reader.seek(sample.compressed_length, 1)
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
-	def output_file(self) -> list[tuple[int, int, str, Optional[Callable[[BinaryReader], bytes]]]]:
-		return list(map(lambda file : (file[0], file[1], join(self._name, f"{file[2]}.{Format.formatToExtension(self.type)}"), None), [sample.output_file() for sample in self.samples]))
+	def output_file(self) -> list[tuple[int, int, str, BinaryReader]]:
+		output: list[tuple[int, int, str, BinaryReader]] = []
+		for sample in self._files:
+			(offset, size, name, reader) = sample.output_file()[0]
+			output.append((offset, size, join(self._name, f"{name}.{Format.formatToExtension(self.type)}"), reader))
+		return output
 
 	def dump_data(self) -> Any:
 		return super().dump_data() | {
@@ -129,5 +147,5 @@ class FSB4(BaseFile):
 			"version": self.version,
 			"flags": self.flags,
 			
-			"samples": [sample.dump_data() for sample in self.samples]
+			"files": [sample.dump_data() for sample in self._files]
 		}

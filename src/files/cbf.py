@@ -1,6 +1,5 @@
 from typing import Any
 from utils.formats import Format
-from binary_reader import BinaryReader
 from files.base import BaseFile
 
 class CBF(BaseFile):
@@ -12,24 +11,30 @@ class CBF(BaseFile):
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
 
-	def read_header(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
-		reader.seek(self._offset, 0)
+	def read_header(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
+		self._reader.seek(self._offset, 0)
 
-		self._header = reader.read_string(4)
-		self.num_containers = reader.read_uint16()
+		self._header = self._reader.read_string(4)
+		self.num_containers = self._reader.read_uint16()
 		self.containers = [None] * self.num_containers # type: ignore
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
-	def read_contents(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
+	def read_contents(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
 
-		reader.seek(self._offset + 4 + reader.UINT32, 0)
+		self._reader.seek(self._offset + 4 + self._reader.UINT32, 0)
 		for i in range(self.num_containers):
-			name_len: int = reader.read_uint16()
-			name: str = reader.read_string(name_len)
-			num_strings: int = reader.read_uint32()
+			name_len: int = self._reader.read_uint16()
+			name: str = self._reader.read_string(name_len)
+			num_strings: int = self._reader.read_uint32()
 
 			container: dict[str, Any] = {
 				"name_len": name_len,
@@ -39,12 +44,12 @@ class CBF(BaseFile):
 			}
 
 			for _ in range(num_strings):
-				str_len: int = reader.read_uint16()
-				container["strings"].append(reader.read_string(str_len))
+				str_len: int = self._reader.read_uint16()
+				container["strings"].append(self._reader.read_string(str_len))
 
 			self.containers[i] = container
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
 	def dump_data(self) -> Any:
 		return super().dump_data() | {

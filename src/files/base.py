@@ -2,39 +2,72 @@ from utils.dictionaries import FILE_NAME_HASHES
 from utils.formats import Format
 from binary_reader import BinaryReader
 
-from typing import Any, Callable, Optional
+from typing import Any
+
 
 class BaseFile:
 	type: Format = Format.UNKNOWN
+
 	_archive: Any
+	_parent_file: Any | None
 	_hash: int
 	_offset: int
 	_size: int
 	_name: str = ""
+
+	_open: bool
+	_reader: BinaryReader | None
 	
 	_header: str
 
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		self._archive = archive
+		self._parent_file = None
 		self._hash = hash
 		self._offset = offset
 		self._size = size
 
+		self._open = False
+		self._file = None
+		self._reader = None
+
 		self._name = FILE_NAME_HASHES.get(str(self._hash), "unknown")
 
-	def read_header(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
-		reader.seek(self._offset, 0)
+	def open(self, reader: BinaryReader):
+		if self._open:
+			return
 
-		self._header = reader.read_string(4)
+		self._reader = reader
+		self._open = True
 
-		reader.seek(reader_pos, 0)
+	def close(self):
+		if not self._open:
+			return
 
-	def read_contents(self, reader: BinaryReader) -> None:
-		pass
+		self._reader = None
+		self._open = False
+
+	def read_header(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
+		self._reader.seek(self._offset, 0)
+
+		self._header = self._reader.read_string(4)
+
+		self._reader.seek(reader_pos, 0)
+
+	def read_contents(self) -> None:
+		...
+
 
 	def set_name(self, name: str) -> None:
 		self._name = name
+
+	def set_parent_file(self, parent_file: Any):
+		self._parent_file = parent_file
+
 
 	def get_header(self) -> str:
 		return self._header
@@ -46,8 +79,24 @@ class BaseFile:
 			return self.type.name
 		return self._header
 	
-	def output_file(self) -> list[tuple[int, int, str, Optional[Callable[[BinaryReader], bytes]]]]:
-		return [(self._offset, self._size, self._name if len(self._name) > 0 else f"{self._hash}.{Format.formatToExtension(self.type)}", None)]
+	def get_hash(self) -> int:
+		return self._hash
+
+	def get_name(self) -> str:
+		return self._name if len(self._name) > 0 else f"{self._hash}.{Format.formatToExtension(self.type)}"
+
+	def get_size(self) -> int:
+		return self._size
+
+	def get_archive(self) -> Any:
+		return self._archive
+
+
+	def output_file(self) -> list[tuple[int, int, str, BinaryReader]]:
+		if not self._open or self._reader == None:
+			return []
+		
+		return [(self._offset, self._size, self.get_name(), self._reader)]
 
 	def dump_data(self) -> Any:
 		return {
@@ -58,3 +107,23 @@ class BaseFile:
 			"name": self._name,
 			"type": self.type.name
 		}
+
+class BaseArchiveFile(BaseFile):
+	_files: list[BaseFile]
+	_file_hashes: dict[int, BaseFile]
+
+	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
+		super().__init__(archive, hash, offset, size)
+
+		self._files = []
+
+	def get_files(self) -> list[BaseFile]:
+		return self._files
+
+	def get_file_by_hash(self, hash: int) -> BaseFile | None:
+		return self._file_hashes.get(hash)
+
+	def close(self) -> None:
+		for file in self._files:
+			file.close()
+		super().close()

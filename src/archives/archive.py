@@ -2,6 +2,7 @@ from binary_reader import BinaryReader
 from files.base import BaseFile
 from utils.formats import Format, ArchiveType
 
+from io import IOBase
 from os.path import getsize, splitext, join
 from enum import Enum
 from typing import Any
@@ -16,14 +17,23 @@ class Archive:
 	out_path: str
 	out_json_path: str
 
+	_open: bool
+	_file: IOBase | None
+	_reader: BinaryReader | None
+
 	_size: int
 	_num_files: int
 	_files: list[BaseFile]
+	_file_hashes: dict[int, BaseFile]
 
 	def __init__(self, file_path: str, file_name: str) -> None:
 		self.file_name = file_name
 		self.file_path = file_path
 
+		self._open = False
+		self._file = None
+		self._reader = None
+		
 		(name, _) = splitext(splitext(file_name)[0])
 		self.name = name
 		from __main__ import OUT_DIRECTORY
@@ -32,26 +42,57 @@ class Archive:
 		self.out_path = join(self.out_path, "files")
 
 		self._size = getsize(self.file_path)
+		self._file_hashes = {}
 
-	def read_header(self, reader: BinaryReader) -> None:
-		pass
+	def open(self):
+		if self._open:
+			return
 
-	def read_files(self, reader: BinaryReader) -> None:
-		pass
+		self._file = open(self.file_path, "rb")
+		self._reader = BinaryReader(self._file)
+		self._open = True
 
-	def read_contents(self, reader: BinaryReader) -> None:
+	def close(self):
+		if not self._open:
+			return
+
+		if self._file != None:
+			self._file.close()
+		self._file = None
+		self._reader = None
+
 		for file in self._files:
-			file.read_contents(reader)
+			file.close()
+			
+		self._open = False
+
+	def read_header(self) -> None:
+		...
+
+	def read_file_headers(self) -> None:
+		...
+		
+	def read_file_contents(self) -> None:
+		if not self._open or self._reader == None:
+			return
+
+		for file in self._files:
+			file.read_contents()
 	
 	def get_files(self) -> list[BaseFile]:
 		return self._files
 	
+	def get_file_by_hash(self, hash: int) -> BaseFile | None:
+		return self._file_hashes.get(hash)
+
 	@staticmethod
 	def create_file(reader: BinaryReader, archive: Any, hash: int, offset: int, size: int) -> BaseFile:
 		file = BaseFile(archive, hash, offset, size)
 		
-		file.read_header(reader)
+		file.open(reader)
+		file.read_header()
 		header: str = file.get_header()
+		file.close()
 
 		format: Enum = Format.headerToFormat(header)
 		newClass = Format.formatToClass(format)

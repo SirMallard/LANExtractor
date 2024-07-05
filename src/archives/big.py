@@ -1,22 +1,21 @@
-from binary_reader import BinaryReader
 from archives.archive import Archive
 from files.base import BaseFile
 from files.sges import SGES
 from utils.formats import ArchiveType, Format
 
 class Entry:
-		hash: int
-		offset: int
-		size1: int # decompressed block 1 size
-		size2: int # decompressed block 2 size
-		size3: int # compressed size - for segs
+	hash: int
+	offset: int
+	size1: int # decompressed block 1 size
+	size2: int # decompressed block 2 size
+	size3: int # compressed size - for segs
 
-		def __init__(self, hash: int, offset: int, size1: int, size2: int, size3: int):
-			self.hash = hash
-			self.offset = offset
-			self.size1 = size1
-			self.size2 = size2
-			self.size3 = size3
+	def __init__(self, hash: int, offset: int, size1: int, size2: int, size3: int):
+		self.hash = hash
+		self.offset = offset
+		self.size1 = size1
+		self.size2 = size2
+		self.size3 = size3
 
 class Big(Archive):
 	type = ArchiveType.BIG
@@ -27,34 +26,40 @@ class Big(Archive):
 	def __init__(self, root: str, path: str) -> None:
 		super().__init__(root, path)
 
-	def read_header(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
+	def read_header(self) -> None:
+		if not self._open or self._reader == None:
+			return
 
-		reader.seek(-4, 2)
-		table_offset: int = reader.read_uint32()
-		reader.seek(-table_offset, 2)
+		reader_pos: int = self._reader.tell()
+
+		self._reader.seek(-4, 2)
+		table_offset: int = self._reader.read_uint32()
+		self._reader.seek(-table_offset, 2)
 		
-		version: str = reader.read_string(4)
+		version: str = self._reader.read_string(4)
 		if version != self.version:
 			raise Exception(f"\033[91mInvalid \033[91;1mBIG\033[91m File version\033[0m: got \033[91m{version}\033[0m, expected \033[92m{self.version}\033[0m.")
 		
-		self._num_files = reader.read_uint32()
+		self._num_files = self._reader.read_uint32()
 
 		self._entries = [None] * self._num_files # type: ignore
 
 		for i in range(self._num_files):
-			hash: int = reader.read_uint32()
-			offset: int = reader.read_uint32() << 4
-			size1: int = reader.read_uint32()
-			size2: int = reader.read_uint32()
-			size3: int = reader.read_uint32()
+			hash: int = self._reader.read_uint32()
+			offset: int = self._reader.read_uint32() << 4
+			size1: int = self._reader.read_uint32()
+			size2: int = self._reader.read_uint32()
+			size3: int = self._reader.read_uint32()
 
 			entry: Entry = Entry(hash, offset, size1, size2, size3)
 			self._entries[i] = entry
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
-	def read_files(self, reader: BinaryReader) -> None:
+	def read_file_headers(self) -> None:
+		if not self._open or self._reader == None:
+			return
+
 		if len(self._entries) == 0:
 			pass
 
@@ -64,8 +69,10 @@ class Big(Archive):
 			size: int = entry.size3
 			if size == 0:
 				size = entry.size1 + entry.size2
-			file: BaseFile = Archive.create_file(reader, self, entry.hash, entry.offset, size)
-			file.read_header(reader)
+			file: BaseFile = Archive.create_file(self._reader, self, entry.hash, entry.offset, size)
+
+			file.open(self._reader)
+			file.read_header()
 			if file.type == Format.SGES:
 				sges: SGES = file # type: ignore
 				sges.size1 = entry.size1
@@ -73,3 +80,4 @@ class Big(Archive):
 				sges.size3 = entry.size3
 
 			self._files[i] = file
+			self._file_hashes[entry.hash] = file

@@ -1,4 +1,3 @@
-from typing import Callable, Optional
 from archives.archive import Archive
 from archives.big import Big
 from archives.wad import Wad
@@ -41,20 +40,18 @@ def read_game_files() -> dict[str, Archive]:
 
 		print(f"\tReading: {archive_name}...", end="")
 
-		with open(archive_path, "rb") as archive_file:
+		archive: Archive
+		if file_type == ".big":
+			archive = Big(archive_path, archive_name)
+		else:
+			archive = Wad(archive_path, archive_name)
 
-			reader = BinaryReader(archive_file)
-
-			archive: Archive
-			if file_type == ".big":
-				archive = Big(archive_path, archive_name)
-			else:
-				archive = Wad(archive_path, archive_name)
-
-			archive.read_header(reader)
-			archive.read_files(reader)
-			archive.read_contents(reader)
-			archives[archive_name] = archive
+		archive.open()
+		archive.read_header()
+		archive.read_file_headers()
+		archive.read_file_contents()
+		archive.close()
+		archives[archive_name] = archive
 
 		print("Done")
 
@@ -79,25 +76,20 @@ def dump_archives(archives: dict[str, Archive]):
 
 		print(f"\tDumping: {archive_name}...", end="")
 
-		with open(archive.file_path, "rb") as archive_file:
-			for file_data in archive.get_files():
-				if file_data.type not in OUT_FILES:
-					continue
+		archive.open()
+		for file_data in archive.get_files():
+			if file_data.type not in OUT_FILES:
+				continue
 
-				reader: BinaryReader = BinaryReader(archive_file)
-
-				files: list[tuple[int, int, str, Optional[Callable[[BinaryReader], bytes]]]] = file_data.output_file()
-				for (offset, size, name, callback) in files:
-					out_path: str = join(archive.out_path, name)
-					makedirs(dirname(out_path), exist_ok = True)
-					
-					with open(out_path, "wb") as out_file:
-						if callback != None:
-							data: bytes = callback(reader)
-							out_file.write(data)
-						else:
-							reader.seek(offset, 0)
-							out_file.write(reader.read_chunk(size))
+			files: list[tuple[int, int, str, BinaryReader]] = file_data.output_file()
+			for (offset, size, name, reader) in files:
+				out_path: str = join(archive.out_path, name)
+				makedirs(dirname(out_path), exist_ok = True)
+				
+				with open(out_path, "wb") as out_file:
+					reader.seek(offset, 0)
+					out_file.write(reader.read_chunk(size))
+		archive.close()
 
 		print("Done")
 
@@ -143,13 +135,9 @@ def main():
 
 
 if __name__ == "__main__":
-	# from gui.window import Window
-	# from PyQt6.QtWidgets import QApplication
-	# app: QApplication = QApplication([])
+	from gui import Gui
 
-	# window: Window = Window()
-	# window.show()
+	gui = Gui()
+	gui.run()
 
-	# app.exec()
-
-	main()
+	# main()

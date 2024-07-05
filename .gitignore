@@ -2,6 +2,22 @@ dump/
 tools/LANOIRE-Tools
 entries/
 segments/
+ghidra/
+typings/
+
+# Game files
+*.sges
+*.dds
+*.fsb4
+*.mp3
+*.wav
+*.ogv
+*.pc
+*.pack
+*.trunk
+*.fnt
+*.bik
+*.unknown
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

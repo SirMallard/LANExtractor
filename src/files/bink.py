@@ -1,7 +1,6 @@
 from typing import Any
 from enum import IntFlag
 from utils.formats import Format
-from binary_reader import BinaryReader
 from files.base import BaseFile
 
 class HeaderFlags(IntFlag):
@@ -24,30 +23,36 @@ class BINK(BaseFile):
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
 
-	def read_header(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
-		reader.seek(self._offset, 0)
+	def read_header(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
+		self._reader.seek(self._offset, 0)
 
-		self._header = reader.read_string(4)
-		self.data_size = reader.read_uint32()
-		self.num_frames = reader.read_uint32()
-		self.largest_frame = reader.read_uint32()
-		reader.read_pad(4)
+		self._header = self._reader.read_string(4)
+		self.data_size = self._reader.read_uint32()
+		self.num_frames = self._reader.read_uint32()
+		self.largest_frame = self._reader.read_uint32()
+		self._reader.read_pad(4)
 
-		self.width = reader.read_uint32()
-		self.height = reader.read_uint32()
-		self.frame_dividend = reader.read_uint32()
-		self.frame_divider = reader.read_uint32()
+		self.width = self._reader.read_uint32()
+		self.height = self._reader.read_uint32()
+		self.frame_dividend = self._reader.read_uint32()
+		self.frame_divider = self._reader.read_uint32()
 
-		self.flags = HeaderFlags(reader.read_uint32())
-		self.num_audio_tracks = reader.read_uint32()
+		self.flags = HeaderFlags(self._reader.read_uint32())
+		self.num_audio_tracks = self._reader.read_uint32()
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
-	def read_contents(self, reader: BinaryReader) -> None:
-		reader_pos: int = reader.tell()
+	def read_contents(self) -> None:
+		if not self._open or self._reader == None:
+			return
+		
+		reader_pos: int = self._reader.tell()
 
-		reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos, 0)
 
 	def dump_data(self) -> Any:
 		return super().dump_data() | {
