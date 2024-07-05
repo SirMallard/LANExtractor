@@ -1,3 +1,4 @@
+from pathlib import Path
 from utils.dictionaries import FILE_NAME_HASHES
 from utils.formats import Format
 from binary_reader import BinaryReader
@@ -14,9 +15,11 @@ class BaseFile:
 	_offset: int
 	_size: int
 	_name: str = ""
+	_file_name: str = ""
 
 	_open: bool
 	_reader: BinaryReader | None
+	_content_ready: bool
 	
 	_header: str
 
@@ -30,8 +33,13 @@ class BaseFile:
 		self._open = False
 		self._file = None
 		self._reader = None
+		self._content_ready = False
 
-		self._name = FILE_NAME_HASHES.get(str(self._hash), "unknown")
+		self._file_name = FILE_NAME_HASHES.get(str(self._hash), "")
+		if self._file_name != "":
+			self._name = self._file_name
+		else:
+			self._name = f"{hex(self._hash)}.{Format.formatToExtension(self.type)}"
 
 	def open(self, reader: BinaryReader):
 		if self._open:
@@ -74,7 +82,7 @@ class BaseFile:
 
 	def get_type(self) -> str:
 		if self.type == Format.SGES:
-			return f"{self.type.name}[{self.file.get_type()}]" # type: ignore
+			return f"{self.type.name}[{self._files[0].get_type()}]" # type: ignore
 		elif self.type != Format.UNKNOWN:
 			return self.type.name
 		return self._header
@@ -83,7 +91,13 @@ class BaseFile:
 		return self._hash
 
 	def get_name(self) -> str:
-		return self._name if len(self._name) > 0 else f"{self._hash}.{Format.formatToExtension(self.type)}"
+		return self._name
+
+	def get_full_name(self) -> str:
+		if self._parent_file == None:
+			return self.get_name()
+
+		return str(Path(self._parent_file.get_full_name(), self.get_name()))
 
 	def get_size(self) -> int:
 		return self._size
@@ -96,9 +110,9 @@ class BaseFile:
 		if not self._open or self._reader == None:
 			return []
 		
-		return [(self._offset, self._size, self.get_name(), self._reader)]
+		return [(self._offset, self._size, self.get_full_name(), self._reader)]
 
-	def dump_data(self) -> Any:
+	def dump_data(self) -> dict[str, Any]:
 		return {
 			"hash": self._hash,
 			"offset": self._offset,
@@ -118,12 +132,17 @@ class BaseArchiveFile(BaseFile):
 		self._files = []
 
 	def get_files(self) -> list[BaseFile]:
+		if not self._content_ready:
+			return []
 		return self._files
 
 	def get_file_by_hash(self, hash: int) -> BaseFile | None:
+		if not self._content_ready:
+			return None
 		return self._file_hashes.get(hash)
 
 	def close(self) -> None:
-		for file in self._files:
-			file.close()
+		if self._content_ready:
+			for file in self._files:
+				file.close()
 		super().close()

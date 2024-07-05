@@ -104,8 +104,11 @@ class DDS(BaseFile):
 		reader_pos: int = self._reader.tell()
 
 		self._reader.seek(reader_pos, 0)
+		self._content_ready = True
 
-	def dump_data(self) -> Any:
+	def dump_data(self) -> dict[str, Any]:
+		if not self._content_ready:
+			return super().dump_data()
 		return super().dump_data() | {
 			"flags": bin(self.flags),
 			"height": self.height,

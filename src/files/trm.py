@@ -88,38 +88,34 @@ class TRM(BaseFile):
 			file.read_contents()
 			self.files[i] = file
 
-		for entry in self.entries:
+		# for entry in self.entries:
+		# 	if entry.hash == 962647487:
+		# 		self._reader.seek(entry.offset + 4, 0)
+		# 		num_textures: int = self._reader.read_uint32()
 
-			if entry.hash == 962647487:
-				self._reader.seek(entry.offset + 4, 0)
-				num_textures: int = self._reader.read_uint32()
+		# 		texture_data: list[dict[str, int]] = [None] * num_textures # type: ignore
 
-				texture_data: list[dict[str, int]] = [None] * num_textures # type: ignore
+		# 		for i in range(num_textures):
+		# 			offset: int = self._reader.read_uint32()
+		# 			self._reader.read_pad(4)
+		# 			hash: int = self._reader.read_uint32()
 
-				for i in range(num_textures):
-					offset: int = self._reader.read_uint32()
-					self._reader.read_pad(4)
-					hash: int = self._reader.read_uint32()
-
-					texture_data[i] = {
-						"offset": offset,
-						"hash": hash,
-					}
+		# 			texture_data[i] = {
+		# 				"offset": offset,
+		# 				"hash": hash,
+		# 			}
 
 				
-				self.file_data["UniqueTextureMain"] = texture_data
+		# 		self.file_data["UniqueTextureMain"] = texture_data
 
 		self._reader.seek(reader_pos, 0)
 
 	def get_sub_files(self) -> list['BaseFile']:
 		return self.files
 
-	def close(self):
-		for i in range(self.num_files):
-			self.files[i].close()
-		return super().close()
-
-	def dump_data(self) -> Any:
+	def dump_data(self) -> dict[str, Any]:
+		if not self._content_ready:
+			return super().dump_data()
 		return super().dump_data() | {
 			"version": self.version,
 			"size1": self.size1,

@@ -50,8 +50,11 @@ class CBF(BaseFile):
 			self.containers[i] = container
 
 		self._reader.seek(reader_pos, 0)
+		self._content_ready = True
 
-	def dump_data(self) -> Any:
+	def dump_data(self) -> dict[str, Any]:
+		if not self._content_ready:
+			return super().dump_data()
 		return super().dump_data() | {
 			"num_containers": self.num_containers,
 			"containers": self.containers

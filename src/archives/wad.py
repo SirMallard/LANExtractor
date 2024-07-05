@@ -58,6 +58,7 @@ class Wad(Archive):
 		for i in range(self._num_files):
 			entry: Entry = self._entries[i]
 			file: BaseFile = Archive.create_file(self._reader, self, entry.hash, entry.offset, entry.size)
+			file.set_name(entry.name)
 
 			file.open(self._reader)
 			file.read_header()

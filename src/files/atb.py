@@ -39,6 +39,7 @@ class ATB(BaseFile):
 		# 	self.containers[i] = container
 
 		self._reader.seek(reader_pos, 0)
+		self._content_ready = True
 
 	def read_object(self) -> dict[str, Any]:
 		if not self._open or self._reader == None:
@@ -164,7 +165,9 @@ class ATB(BaseFile):
 		
 		return [self.read_variables(type)[1] for _ in range(size)]
 
-	def dump_data(self) -> Any:
+	def dump_data(self) -> dict[str, Any]:
+		if not self._content_ready:
+			return super().dump_data()
 		return super().dump_data() | {
 			"num_containers": self.num_containers,
 			"containers": self.containers

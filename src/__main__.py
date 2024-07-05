@@ -17,8 +17,8 @@ OUT_DIRECTORY = "dump"
 READ_GAME_FILES = True
 DUMP_JSON = True
 DUMP_ARCHIVE = False
-PICKLE_DATA = False
-LIMIT_FILE = True
+PICKLE_DATA = True
+LIMIT_FILE = False
 
 ARCHIVE_NAMES = ["vehicles.big.pc"]
 OUT_FILES = Format

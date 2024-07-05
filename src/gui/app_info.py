@@ -178,7 +178,7 @@ class AppInfo:
 	def move_down_file(self, hash: int) -> bool:
 		return self.open_file(hash)
 
-	def get_file(self) -> AppFile | None:
+	def get_selected_file(self) -> AppFile | None:
 		file: Path | Archive | BaseFile | None = self.selected
 		if file == None:
 			return None
@@ -191,6 +191,23 @@ class AppInfo:
 			app_file.update(False, False, True, False, False)
 			return app_file
 		else:
+			app_file = AppFile(file, file.name, -1, file.stat().st_size)
+			app_file.update(file.is_file(), file.is_dir(), file.suffix == ".pc", False, False)
+			return app_file
+
+	def get_file(self) -> AppFile | None:
+		if self.current_file != None:
+			file = self.current_file
+			app_file: AppFile = AppFile(file, file.get_name(), file.get_hash(), file.get_size())
+			app_file.update(False, False, False, True, True)
+			return app_file
+		elif self.current_archive != None:
+			file = self.current_archive
+			app_file = AppFile(file, file.name, -1, 0)
+			app_file.update(False, False, True, False, False)
+			return app_file
+		else:
+			file = self.current_directory
 			app_file = AppFile(file, file.name, -1, file.stat().st_size)
 			app_file.update(file.is_file(), file.is_dir(), file.suffix == ".pc", False, False)
 			return app_file

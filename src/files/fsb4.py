@@ -1,13 +1,9 @@
-from binary_reader import BinaryReader
 from utils.formats import Format
 from files.base import BaseArchiveFile, BaseFile
 
 from typing import Any
-from os.path import join
 
 class Sample(BaseFile):
-	_file: Any
-
 	header_len: int
 	_name: str
 
@@ -31,9 +27,8 @@ class Sample(BaseFile):
 
 	def __init__(self, file: Any, offset: int = 0) -> None:
 		super().__init__(file.get_archive(), 0, offset, 0)
-		self._file = file
 		self._offset = offset
-		self._parent_fil = file
+		self._parent_file = file
 
 	def read_header(self) -> None:
 		if not self._open or self._reader == None:
@@ -64,12 +59,6 @@ class Sample(BaseFile):
 		self.var_pan = self._reader.read_int16()
 
 		self._reader.seek(reader_pos, 0)
-
-	def output_file(self) -> list[tuple[int, int, str, BinaryReader]]:
-		if not self._open or self._reader == None:
-			return []
-		
-		return [(self._offset, self._size, self._name, self._reader)]
 
 	def dump_data(self) -> Any:
 		return {
@@ -130,18 +119,14 @@ class FSB4(BaseArchiveFile):
 			sample.read_header()
 			self._files[i] = sample
 			self._file_hashes[i] = sample
-			self._reader.seek(sample.compressed_length, 1)
+			# self._reader.seek(sample.compressed_length, 1)
 
 		self._reader.seek(reader_pos, 0)
+		self._content_ready = True
 
-	def output_file(self) -> list[tuple[int, int, str, BinaryReader]]:
-		output: list[tuple[int, int, str, BinaryReader]] = []
-		for sample in self._files:
-			(offset, size, name, reader) = sample.output_file()[0]
-			output.append((offset, size, join(self._name, f"{name}.{Format.formatToExtension(self.type)}"), reader))
-		return output
-
-	def dump_data(self) -> Any:
+	def dump_data(self) -> dict[str, Any]:
+		if not self._content_ready:
+			return super().dump_data()
 		return super().dump_data() | {
 			"num_samples": self.num_samples,
 			"version": self.version,

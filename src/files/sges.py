@@ -114,15 +114,16 @@ class SGES(BaseArchiveFile):
 		}
 
 		self._reader.seek(reader_pos, 0)
-
-	def output_file(self) -> list[tuple[int, int, str, BinaryReader]]:
-		return self._files[0].output_file()
+		self._content_ready = True
 
 	def close(self) -> None:
-		self._file_file.close()
+		if self._content_ready:
+			self._file_file.close()
 		super().close()
 
-	def dump_data(self) -> Any:
+	def dump_data(self) -> dict[str, Any]:
+		if not self._content_ready:
+			return super().dump_data()
 		return super().dump_data() | {
 			"version": self.version,
 			"num_chunks": self.num_chunks,

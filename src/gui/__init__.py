@@ -94,7 +94,7 @@ class Gui():
 	def run_window(self, first_time: bool):
 		self.dock_builder(first_time)
 
-		window_flags: imgui.WindowFlags = imgui.WindowFlags_.always_vertical_scrollbar.value | imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
+		window_flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
 
 		imgui.begin("Tree Explorer", None, window_flags);
 		imgui.text("Tree Explorer");
