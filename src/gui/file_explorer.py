@@ -24,7 +24,7 @@ class FileExplorer():
 		imgui.same_line()
 		imgui.text(str(APP.current_directory))
 
-		table_flags: int = imgui.TableFlags_.sortable.value | imgui.TableFlags_.row_bg.value | imgui.TableFlags_.sortable.value | imgui.TableFlags_.borders.value
+		table_flags: int = imgui.TableFlags_.sortable.value | imgui.TableFlags_.row_bg.value | imgui.TableFlags_.sortable.value | imgui.TableFlags_.borders.value | imgui.TableFlags_.sizing_fixed_fit.value
 		imgui.begin_group()
 		if imgui.begin_table("##file_table", 3, table_flags, imgui.ImVec2(0, 200)):
 			imgui.table_setup_column("Name", imgui.TableColumnFlags_.width_stretch.value | imgui.TableColumnFlags_.default_sort.value, 5)

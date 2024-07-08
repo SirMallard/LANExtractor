@@ -1,5 +1,6 @@
-from imgui_bundle import imgui
+from imgui_bundle import ImVec2, imgui
 from imgui_bundle.python_backends.glfw_backend import GlfwRenderer
+from numpy import array
 
 from gui.file_info import FileInfo
 internal = imgui.internal
@@ -20,10 +21,48 @@ class Gui():
 	file_explorer: FileExplorer
 	file_info: FileInfo
 
+	show_demo_window: bool = False
+	show_style_editor: bool = False
+
+	folder_icon: int
+	archive_icon: int
+
 	def __init__(self) -> None:
 		self.file_explorer = FileExplorer()
 		self.file_info = FileInfo()
-	
+
+	def load_image(self, file: str) -> int:
+		image = Image.open(file)
+
+		imageID = gl.glGenTextures(1)
+		gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
+		gl.glBindTexture(gl.GL_TEXTURE_2D, imageID)
+		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
+		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
+		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
+		gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_BASE_LEVEL, 0)
+		gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAX_LEVEL, 0)
+		gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, image.size[0], image.size[1], 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, array(list(image.getdata())))
+		return imageID
+
+	def init_style(self) -> None:
+		io: imgui.IO = imgui.get_io()
+		io.config_flags |= imgui.ConfigFlags_.docking_enable.value
+		io.config_flags |= imgui.ConfigFlags_.nav_enable_keyboard.value
+
+		default: imgui.ImFont = io.fonts.add_font_from_file_ttf("C:\\Windows\\Fonts\\segoeui.ttf", 16)
+		io.font_default = default
+
+		style: imgui.Style = imgui.get_style()
+		imgui.style_colors_light()
+		style.tab_rounding = 0
+		style.frame_border_size = 1
+		style.tab_bar_border_size = 2
+		style.window_menu_button_position = imgui.Dir_.none.value
+		
+		io.set_ini_filename("")
+
 	def run(self) -> None:
 		imgui.create_context()
 
@@ -54,18 +93,17 @@ class Gui():
 		glfw.make_context_current(self.window)
 		glfw.swap_interval(1)
 
-		io: imgui.IO = imgui.get_io()
-		io.config_flags |= imgui.ConfigFlags_.docking_enable.value
-		io.config_flags |= imgui.ConfigFlags_.nav_enable_keyboard.value
-
-		imgui.style_colors_dark()
-		
 		# We need to initialize the OpenGL backend (so that we can later call opengl3_new_frame)
 		# imgui.backends.glfw_init_for_opengl(window.)
 		imgui.backends.opengl3_init("#version 150")
+
+		self.folder_icon = self.load_image("src\\assets\\folder.ico")
+		self.archive_icon = self.load_image("src\\assets\\archive.ico")
+
 		imgui.backends.opengl3_new_frame()
+
+		self.init_style()
 		
-		io.set_ini_filename("")
 		impl = GlfwRenderer(self.window)
 
 		first_time: bool = True
@@ -76,7 +114,7 @@ class Gui():
 			# imgui.backends.glfw_new_frame()
 			imgui.new_frame()
 
-			self.run_window(first_time)
+			self.render(first_time)
 
 			gl.glClearColor(0.0, 0.0, 0.0, 1)
 			gl.glClear(gl.GL_COLOR_BUFFER_BIT)
@@ -91,44 +129,188 @@ class Gui():
 		impl.shutdown()
 		glfw.terminate()
 	
-	def run_window(self, first_time: bool):
-		self.dock_builder(first_time)
+	def quit(self):
+		sys.exit(0)
 
-		window_flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
+	def render(self, first_time: bool):
+		self.build_dockspace(first_time)
 
-		imgui.begin("Tree Explorer", None, window_flags);
-		imgui.text("Tree Explorer");
-		imgui.end();
+		self.render_menu_bar()
+		self.render_status_bar()
+		self.render_tool_bar()
 
-		self.file_info.render(window_flags)
+		self.render_list_view()
+		self.render_tree_view()
+
+
+
+		# imgui.begin("Tree Explorer", None, window_flags);
+		# imgui.text("Tree Explorer");
+		# imgui.end();
+
+		# self.file_info.render(window_flags)
 		
-		imgui.begin("Status Bar", None, window_flags)
-		imgui.text("Status Bar")
+		# imgui.begin("Status Bar", None, window_flags)
+		# imgui.text("Status Bar")
+		# imgui.end()
+
+		# self.file_explorer.render(window_flags)
+
+	def render_menu_bar(self):
+		flags: imgui.WindowFlags = imgui.WindowFlags_.no_scrollbar.value | imgui.WindowFlags_.menu_bar.value
+		style: imgui.Style = imgui.get_style()
+		imgui.push_style_var(imgui.StyleVar_.window_padding.value, ImVec2(style.frame_padding.x + int(style.window_border_size), style.frame_padding.y))
+		if internal.begin_viewport_side_bar("##MenuBar", imgui.get_main_viewport(), imgui.Dir_.up.value, 2 * (imgui.get_frame_height() + style.frame_padding.y), flags):
+			if imgui.begin_menu_bar():
+				if imgui.begin_menu("File"):
+					imgui.menu_item("Open folder", "", False)
+					if imgui.menu_item("Quit", "Alt+F4", False)[0]:
+						self.quit()
+					imgui.end_menu()
+				if imgui.begin_menu("Edit"):
+					imgui.menu_item("Export", "Ctrl+E", False, False)
+					imgui.menu_item("Export contents", "Ctrl+Shift+E", False, False)
+					imgui.menu_item("Export JSON", "", False, False)
+					imgui.separator()
+					imgui.menu_item("Copy", "Ctrl+C", False, False)
+					imgui.menu_item("Copy path", "Ctrl+Alt+C", False, False)
+					imgui.separator()
+					imgui.menu_item("Select all", "Ctrl+A", False)
+					imgui.end_menu()
+				if imgui.begin_menu("View"):
+					imgui.end_menu()
+				if imgui.begin_menu("Tools"):
+					imgui.menu_item("Hash Lookup", "", False)
+					imgui.menu_item("Archive search", "Ctrl+Shift+F", False)
+					if imgui.begin_menu("Debug"):
+						self.show_demo_window = imgui.menu_item("Demo Window", "", self.show_demo_window)[1]
+						self.show_style_editor = imgui.menu_item("Style editor", "", self.show_style_editor)[1]
+						imgui.end_menu()
+					imgui.end_menu()
+				imgui.end_menu_bar()
+		imgui.pop_style_var()
 		imgui.end()
 
-		self.file_explorer.render(window_flags)
+		
+		if self.show_demo_window:
+			toggle = imgui.show_demo_window(self.show_demo_window)
+			self.show_demo_window = toggle if toggle != None else self.show_demo_window
+		if self.show_style_editor:
+			imgui.show_style_editor()
 
-	def dock_builder(self, first_time: bool):
+	def render_status_bar(self):
+		flags: imgui.WindowFlags = imgui.WindowFlags_.no_scrollbar.value | imgui.WindowFlags_.menu_bar.value
+		if internal.begin_viewport_side_bar("##StatusBar", imgui.get_main_viewport(), imgui.Dir_.down.value, imgui.get_frame_height(), flags):
+			if imgui.begin_menu_bar():
+				imgui.text("LA Noire!")
+				imgui.end_menu_bar()
+		imgui.end()
+
+	def render_tool_bar(self):
+		style: imgui.Style = imgui.get_style()
+		if internal.begin_viewport_side_bar("##MenuBar", imgui.get_main_viewport(), imgui.Dir_.up.value, 0, imgui.WindowFlags_.none.value):
+			imgui.push_style_var(imgui.StyleVar_.item_spacing.value, ImVec2(style.frame_padding.y, style.item_spacing.y))
+
+			imgui.arrow_button("##BackButton", imgui.Dir_.left.value)
+			imgui.same_line()
+			imgui.arrow_button("##ForwardButton", imgui.Dir_.right.value)
+			imgui.same_line()
+			imgui.arrow_button("##UpButton", imgui.Dir_.up.value)
+
+			imgui.same_line()
+			imgui.push_item_width(-(2 * imgui.get_frame_height() + 4 * style.item_spacing.x + 1 + max(imgui.get_window_width() * 0.2, 200)))
+			imgui.input_text("###Path", "X:\\SteamLibrary\\steamapps\\common\\L.A.Noire\\final\\pc", imgui.InputTextFlags_.auto_select_all.value)
+			imgui.pop_item_width()
+
+			imgui.same_line()
+			imgui.arrow_button("##GoButton", imgui.Dir_.right.value)
+
+			imgui.same_line()
+			internal.separator_ex(internal.SeparatorFlags_.vertical.value)
+
+			imgui.same_line()
+			imgui.push_item_width(-(imgui.get_frame_height() + style.item_spacing.x))
+			imgui.input_text_with_hint("###Search", "Search", "", imgui.InputTextFlags_.auto_select_all.value)
+			imgui.pop_item_width()
+
+			imgui.same_line()
+			imgui.arrow_button("##SearchButton", imgui.Dir_.right.value)
+
+			imgui.pop_style_var()
+		imgui.end()
+
+	def render_list_view(self):
+		style: imgui.Style = imgui.get_style()
+		flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
+
+		# imgui.push_style_var(imgui.StyleVar_.window_padding.value, ImVec2(0, 0))
+		# imgui.push_style_var(imgui.StyleVar_.window_border_size.value, 0)
+		# imgui.push_style_var(imgui.StyleVar_.frame_border_size.value, 0)
+		if not imgui.begin("List View", None, flags)[0]:
+			# imgui.pop_style_var(3)
+			imgui.end()
+			return
+		# imgui.pop_style_var()
+
+		table_flags: imgui.TableFlags = imgui.TableFlags_.resizable.value + imgui.TableFlags_.reorderable.value | imgui.TableFlags_.sortable.value | imgui.TableFlags_.borders_outer.value | imgui.TableFlags_.borders_inner_v.value | imgui.TableFlags_.scroll_y.value
+		if imgui.begin_table("##FileTable", 4, table_flags, ImVec2(0, 0)):
+			column_flags: imgui.TableColumnFlags = imgui.TableColumnFlags_.width_fixed.value
+			imgui.table_setup_column("Name", column_flags, 400)
+			imgui.table_setup_column("Type", column_flags, 160)
+			imgui.table_setup_column("Size", column_flags, 100)
+			imgui.table_setup_column("Attributes", column_flags, 160)
+			
+			imgui.table_setup_scroll_freeze(1, 1)
+			imgui.table_headers_row()
+
+			for i in range(100):
+				imgui.table_next_row()
+
+				if imgui.table_set_column_index(0):
+					imgui.image(self.folder_icon if i % 2 == 0 else self.archive_icon, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
+					imgui.same_line()
+					imgui.text(f"Asset-{i}")
+
+					imgui.table_next_column()
+					imgui.text("Folder" if i % 2 == 0 else "Archive")
+
+					imgui.table_next_column()
+					imgui.text("3.142 5GB")
+
+					imgui.table_next_column()
+					imgui.text("BIG Archive")
+
+
+			imgui.end_table()
+
+		# imgui.pop_style_var(2)
+		imgui.end()
+
+	def render_tree_view(self):
+		flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
+		if not imgui.begin("Tree View", None, flags)[0]:
+			imgui.end()
+			return
+
+		imgui.text("Tree view!")
+
+		imgui.end()
+
+	def build_dockspace(self, first_time: bool):
 		viewport: imgui.Viewport = imgui.get_main_viewport()
 
 		dockspace_id: imgui.ID = imgui.dock_space_over_viewport(viewport, imgui.DockNodeFlags_.passthru_central_node.value)
 
 		if first_time:
-			docknode_flags: imgui.DockNodeFlags = imgui.DockNodeFlags_.no_undocking.value | imgui.DockNodeFlags_.auto_hide_tab_bar.value | imgui.DockNodeFlags_.no_resize.value
-			internal.dock_builder_remove_node(dockspace_id)
-			internal.dock_builder_add_node(dockspace_id, docknode_flags)
+			docknode_flags: imgui.DockNodeFlags = imgui.DockNodeFlags_.no_undocking.value
 			internal.dock_builder_set_node_size(dockspace_id, viewport.size)
 
-			(_, bottom, top) = internal.dock_builder_split_node_py(dockspace_id, imgui.Dir_.down.value, 0.2)
-			(_, left, center) = internal.dock_builder_split_node_py(top, imgui.Dir_.left.value, 0.2)
-			(_, right, center) = internal.dock_builder_split_node_py(center, imgui.Dir_.right.value, 0.3)
+			(_, left, right) = internal.dock_builder_split_node_py(dockspace_id, imgui.Dir_.left.value, 0.2)
 
-			internal.dock_builder_get_node(bottom).local_flags |= docknode_flags
+			internal.dock_builder_get_node(dockspace_id).local_flags |= docknode_flags | imgui.DockNodeFlags_.passthru_central_node.value
 			internal.dock_builder_get_node(left).local_flags |= docknode_flags
 			internal.dock_builder_get_node(right).local_flags |= docknode_flags
 
-			internal.dock_builder_dock_window("Status Bar", bottom)
-			internal.dock_builder_dock_window("Tree Explorer", left)
-			internal.dock_builder_dock_window("File Info", right)
-			internal.dock_builder_dock_window("File View", center)
+			internal.dock_builder_dock_window("Tree View", left)
+			internal.dock_builder_dock_window("List View", right)
 			internal.dock_builder_finish(dockspace_id)

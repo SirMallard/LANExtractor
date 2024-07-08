@@ -17,10 +17,10 @@ OUT_DIRECTORY = "dump"
 READ_GAME_FILES = True
 DUMP_JSON = True
 DUMP_ARCHIVE = False
-PICKLE_DATA = True
-LIMIT_FILE = False
+PICKLE_DATA = False
+LIMIT_FILE = True
 
-ARCHIVE_NAMES = ["vehicles.big.pc"]
+ARCHIVE_NAMES = ["audio.big.pc"]
 OUT_FILES = Format
 
 def read_game_files() -> dict[str, Archive]:
