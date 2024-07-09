@@ -2,15 +2,11 @@ from imgui_bundle import ImVec2, imgui
 from imgui_bundle.python_backends.glfw_backend import GlfwRenderer
 from numpy import array
 
-from gui.file_info import FileInfo
 internal = imgui.internal
 import OpenGL.GL as gl
 import glfw
 import sys
 from PIL import Image
-
-from gui.file_explorer import FileExplorer
-
 
 WINDOW_WIDTH: int = 1280
 WINDOW_HEIGHT: int = 720
@@ -18,23 +14,20 @@ WINDOW_NAME: str = "L.A. Noire Extractor"
 
 class Gui():
 	window: glfw._GLFWwindow # type: ignore
-	file_explorer: FileExplorer
-	file_info: FileInfo
 
 	show_demo_window: bool = False
 	show_style_editor: bool = False
 
-	folder_icon: int
-	archive_icon: int
+	icons: dict[str, int]
 
 	def __init__(self) -> None:
-		self.file_explorer = FileExplorer()
-		self.file_info = FileInfo()
+		self.icons = {}
 
 	def load_image(self, file: str) -> int:
 		image = Image.open(file)
+		data = array(list(image.getdata())) # type: ignore
 
-		imageID = gl.glGenTextures(1)
+		imageID: int = gl.glGenTextures(1)
 		gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
 		gl.glBindTexture(gl.GL_TEXTURE_2D, imageID)
 		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
@@ -43,7 +36,7 @@ class Gui():
 		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
 		gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_BASE_LEVEL, 0)
 		gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAX_LEVEL, 0)
-		gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, image.size[0], image.size[1], 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, array(list(image.getdata())))
+		gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, image.size[0], image.size[1], 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, data)
 		return imageID
 
 	def init_style(self) -> None:
@@ -97,8 +90,8 @@ class Gui():
 		# imgui.backends.glfw_init_for_opengl(window.)
 		imgui.backends.opengl3_init("#version 150")
 
-		self.folder_icon = self.load_image("src\\assets\\folder.ico")
-		self.archive_icon = self.load_image("src\\assets\\archive.ico")
+		self.icons["folder"] = self.load_image("src\\assets\\folder.ico")
+		self.icons["archive"] = self.load_image("src\\assets\\archive.ico")
 
 		imgui.backends.opengl3_new_frame()
 
@@ -141,20 +134,7 @@ class Gui():
 
 		self.render_list_view()
 		self.render_tree_view()
-
-
-
-		# imgui.begin("Tree Explorer", None, window_flags);
-		# imgui.text("Tree Explorer");
-		# imgui.end();
-
-		# self.file_info.render(window_flags)
-		
-		# imgui.begin("Status Bar", None, window_flags)
-		# imgui.text("Status Bar")
-		# imgui.end()
-
-		# self.file_explorer.render(window_flags)
+		self.render_info_view()
 
 	def render_menu_bar(self):
 		flags: imgui.WindowFlags = imgui.WindowFlags_.no_scrollbar.value | imgui.WindowFlags_.menu_bar.value
@@ -240,7 +220,6 @@ class Gui():
 		imgui.end()
 
 	def render_list_view(self):
-		style: imgui.Style = imgui.get_style()
 		flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
 
 		# imgui.push_style_var(imgui.StyleVar_.window_padding.value, ImVec2(0, 0))
@@ -267,9 +246,11 @@ class Gui():
 				imgui.table_next_row()
 
 				if imgui.table_set_column_index(0):
-					imgui.image(self.folder_icon if i % 2 == 0 else self.archive_icon, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
+					imgui.image(self.icons.get("folder", 0) if i % 2 == 0 else self.icons.get("archive", 0), ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
 					imgui.same_line()
-					imgui.text(f"Asset-{i}")
+					(hit, select) = imgui.selectable(f"Asset-{i}", False, imgui.SelectableFlags_.allow_double_click.value | imgui.SelectableFlags_.span_all_columns.value)
+					if hit:
+						print(f"Hit: {i} {select}")
 
 					imgui.table_next_column()
 					imgui.text("Folder" if i % 2 == 0 else "Archive")
@@ -296,6 +277,16 @@ class Gui():
 
 		imgui.end()
 
+	def render_info_view(self):
+		flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
+		if not imgui.begin("File Info", None, flags)[0]:
+			imgui.end()
+			return
+
+		imgui.text("File Info!")
+
+		imgui.end()
+
 	def build_dockspace(self, first_time: bool):
 		viewport: imgui.Viewport = imgui.get_main_viewport()
 
@@ -305,12 +296,15 @@ class Gui():
 			docknode_flags: imgui.DockNodeFlags = imgui.DockNodeFlags_.no_undocking.value
 			internal.dock_builder_set_node_size(dockspace_id, viewport.size)
 
-			(_, left, right) = internal.dock_builder_split_node_py(dockspace_id, imgui.Dir_.left.value, 0.2)
+			(_, left, center) = internal.dock_builder_split_node_py(dockspace_id, imgui.Dir_.left.value, 0.2)
+			(_, right, center) = internal.dock_builder_split_node_py(center, imgui.Dir_.right.value, 0.3)
 
 			internal.dock_builder_get_node(dockspace_id).local_flags |= docknode_flags | imgui.DockNodeFlags_.passthru_central_node.value
 			internal.dock_builder_get_node(left).local_flags |= docknode_flags
+			internal.dock_builder_get_node(center).local_flags |= docknode_flags
 			internal.dock_builder_get_node(right).local_flags |= docknode_flags
 
 			internal.dock_builder_dock_window("Tree View", left)
-			internal.dock_builder_dock_window("List View", right)
+			internal.dock_builder_dock_window("List View", center)
+			internal.dock_builder_dock_window("File Info", right)
 			internal.dock_builder_finish(dockspace_id)
