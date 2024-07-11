@@ -99,7 +99,7 @@ A WAD file is fairly easy to read: the header is just the number of files, which
 There is only one WAD file: out.wad.pc, which is odd and contains a bunch of different data.
 
 ### BIG
-A BIG file is more complicated and does not contain any file names. Instead it relies on a table offset and file count to get the offset, size and name CRC and another size value. Some BIG files cannot be read this way for some reason.
+A BIG file is more complicated and does not contain any file names. Instead it relies on a table offset and file count to get the offset, size and name CRC and another size value. Some BIG files cannot be read this way for some reason, and instead rely on files in `out.wad.pc` which contains the file table. BIG files do not have names and rely solely on crc32 hashes which have to be guessed. Within the LANoire.exe there are many unhashed strings which have been extracted by [Baromir19](https://github.com/Baromir19/LANoireTools). However, these are lacking and there are many files where the hash can be easily guessed, but were not found when reading the exectuable.
 
 
 ## Files
