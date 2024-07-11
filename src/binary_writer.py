@@ -3,21 +3,21 @@ from io import IOBase
 from typing import Any
 
 class BinaryWriter():
-	_file: IOBase
-	_endian: str
+	file: IOBase
+	endian: str
 
 	def __init__(self, file: IOBase) -> None:
-		self._file = file
-		self._endian = "@"
+		self.file = file
+		self.endian = "@"
 
-	def set_endian(self, endian: str) -> None:
-		self._endian = endian
+	def setendian(self, endian: str) -> None:
+		self.endian = endian
 
 	def tell(self) -> int:
-		return self._file.tell()
+		return self.file.tell()
 
 	def write(self, format: str, data: Any) -> int | None:
-		self._file.write(pack(f"{self._endian}{format}", ))
+		self.file.write(pack(f"{self.endian}{format}", ))
 
 	def write_uint8(self, data: int) -> int | None:
 		return self.write("B", data)
@@ -53,4 +53,4 @@ class BinaryWriter():
 		self.write(f"{len(data)}s", data.encode())
 
 	def write_chunk(self, data: Any) -> int | None:
-		return self._file.write(data)
+		return self.file.write(data)

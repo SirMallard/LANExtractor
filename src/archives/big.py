@@ -1,3 +1,4 @@
+from pathlib import Path
 from archives.archive import Archive
 from files.base import BaseFile
 from files.sges import SGES
@@ -21,10 +22,10 @@ class Big(Archive):
 	type = ArchiveType.BIG
 	version: str = "\x03\x00\x00\x00"
 	
-	_entries: list[Entry]
+	entries: list[Entry]
 
-	def __init__(self, root: str, path: str) -> None:
-		super().__init__(root, path)
+	def __init__(self, name: str, path: Path, full_path: Path) -> None:
+		super().__init__(name, path, full_path)
 
 	def read_header(self) -> None:
 		if not self._open or self._reader == None:
@@ -40,11 +41,11 @@ class Big(Archive):
 		if version != self.version:
 			raise Exception(f"\033[91mInvalid \033[91;1mBIG\033[91m File version\033[0m: got \033[91m{version}\033[0m, expected \033[92m{self.version}\033[0m.")
 		
-		self._num_files = self._reader.read_uint32()
+		self.num_files = self._reader.read_uint32()
 
-		self._entries = [None] * self._num_files # type: ignore
+		self.entries = [None] * self.num_files # type: ignore
 
-		for i in range(self._num_files):
+		for i in range(self.num_files):
 			hash: int = self._reader.read_uint32()
 			offset: int = self._reader.read_uint32() << 4
 			size1: int = self._reader.read_uint32()
@@ -52,7 +53,7 @@ class Big(Archive):
 			size3: int = self._reader.read_uint32()
 
 			entry: Entry = Entry(hash, offset, size1, size2, size3)
-			self._entries[i] = entry
+			self.entries[i] = entry
 
 		self._reader.seek(reader_pos, 0)
 
@@ -60,12 +61,12 @@ class Big(Archive):
 		if not self._open or self._reader == None:
 			return
 
-		if len(self._entries) == 0:
+		if len(self.entries) == 0:
 			pass
 
-		self._files = [None] * self._num_files # type: ignore
-		for i in range(len(self._entries)):
-			entry: Entry = self._entries[i]
+		self.files = [None] * self.num_files # type: ignore
+		for i in range(len(self.entries)):
+			entry: Entry = self.entries[i]
 			size: int = entry.size3
 			if size == 0:
 				size = entry.size1 + entry.size2
@@ -79,5 +80,5 @@ class Big(Archive):
 				sges.size2 = entry.size2
 				sges.size3 = entry.size3
 
-			self._files[i] = file
-			self._file_hashes[entry.hash] = file
+			self.files[i] = file
+			self.file_hashes[entry.hash] = file

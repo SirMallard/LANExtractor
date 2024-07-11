@@ -1,4 +1,4 @@
-from io import BytesIO, IOBase
+from io import BufferedIOBase, BytesIO
 from typing import Any
 from zlib import decompress
 from archives.archive import Archive
@@ -42,7 +42,7 @@ class SGES(BaseArchiveFile):
 	compressed_size: int = 0
 	uncompressed_size: int = 0
 
-	_file_file: IOBase
+	_file_file: BufferedIOBase
 	_file_reader: BinaryReader
 	
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
@@ -53,9 +53,9 @@ class SGES(BaseArchiveFile):
 			return
 		
 		reader_pos: int = self._reader.tell()
-		self._reader.seek(self._offset, 0)
+		self._reader.seek(self.offset, 0)
 
-		self._header = self._reader.read_string(4)
+		self.header = self._reader.read_string(4)
 		self.version = self._reader.read_uint16()
 		self.num_chunks = self._reader.read_uint16()
 		self.u0 = self._reader.read_uint8()
@@ -63,7 +63,7 @@ class SGES(BaseArchiveFile):
 		self.u2 = self._reader.read_uint8()
 		self.u3 = self._reader.read_uint8()
 
-		self.data_offset = align(self._offset + 12 + (4 * self.u0) + (2 * self._reader.UINT16 * self.num_chunks), 16)
+		self.data_offset = align(self.offset + 12 + (4 * self.u0) + (2 * self._reader.UINT16 * self.num_chunks), 16)
 
 		self._reader.seek(reader_pos, 0)
 
@@ -73,7 +73,7 @@ class SGES(BaseArchiveFile):
 		
 		reader_pos: int = self._reader.tell()
 
-		self._reader.seek(self._offset + 4 + (2 * self._reader.UINT16) + (4 * self._reader.UINT8), 0)
+		self._reader.seek(self.offset + 4 + (2 * self._reader.UINT16) + (4 * self._reader.UINT8), 0)
 		
 		self.uobjects = [self._reader.read_uint32() for _ in range(self.u0)]
 		
@@ -102,15 +102,15 @@ class SGES(BaseArchiveFile):
 		self.uncompressed_size = self._file_file.__sizeof__()
 
 		self._file_reader = BinaryReader(self._file_file)
-		file: BaseFile = Archive.create_file(self._file_reader, self, self._hash, 0, self.uncompressed_size)
-		file.set_parent_file(self)
+		file: BaseFile = Archive.create_file(self._file_reader, self, self.hash, 0, self.uncompressed_size)
+		file.parent_file = self
 		file.open(self._file_reader)
 		file.read_header()
 		file.read_contents()
 
-		self._files = [file]
-		self._file_hashes = {
-			self._hash: file
+		self.files = [file]
+		self.file_hashes = {
+			self.hash: file
 		}
 
 		self._reader.seek(reader_pos, 0)
@@ -143,5 +143,5 @@ class SGES(BaseArchiveFile):
 				"compressed": bool(chunk.flags & 0x10),
 				"size_coeff": chunk.size_coeff,
 			} for chunk in self.chunks],
-			"file": self._files[0].dump_data()
+			"file": self.files[0].dump_data()
 		}

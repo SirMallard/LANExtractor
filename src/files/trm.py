@@ -42,9 +42,9 @@ class TRM(BaseFile):
 			return
 		
 		reader_pos: int = self._reader.tell()
-		self._reader.seek(self._offset, 0)
+		self._reader.seek(self.offset, 0)
 
-		self._header = self._reader.read_string(4)
+		self.header = self._reader.read_string(4)
 		self.version = self._reader.read_uint32()
 		self.size1 = self._reader.read_uint32()
 		self.size2 = self._reader.read_uint32()
@@ -78,10 +78,10 @@ class TRM(BaseFile):
 
 			file: BaseFile
 			if entry.offset % 2 == 1:
-				file = Archive.create_file(self._reader, self._archive, entry.hash, 4, entry.size)
+				file = Archive.create_file(self._reader, self.archive, entry.hash, 4, entry.size)
 			else:
 				self._reader.seek(entry.offset, 0)
-				file = Archive.create_file(self._reader, self._archive, entry.hash, entry.offset, entry.size)
+				file = Archive.create_file(self._reader, self.archive, entry.hash, entry.offset, entry.size)
 
 			file.open(self._reader)
 			file.read_header()

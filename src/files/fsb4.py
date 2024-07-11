@@ -5,7 +5,6 @@ from typing import Any
 
 class Sample(BaseFile):
 	header_len: int
-	_name: str
 
 	length: int
 	compressed_length: int
@@ -27,8 +26,8 @@ class Sample(BaseFile):
 
 	def __init__(self, file: Any, offset: int = 0) -> None:
 		super().__init__(file.get_archive(), 0, offset, 0)
-		self._offset = offset
-		self._parent_file = file
+		self.offset = offset
+		self.parent_file = file
 
 	def read_header(self) -> None:
 		if not self._open or self._reader == None:
@@ -37,7 +36,7 @@ class Sample(BaseFile):
 		reader_pos: int = self._reader.tell()
 
 		self.header_len = self._reader.read_uint16()
-		self._name = self._reader.read_string(30).rstrip("\x00")
+		self.name = self._reader.read_string(30).rstrip("\x00")
 
 		self.length = self._reader.read_uint32()
 		self.compressed_length = self._reader.read_uint32()
@@ -62,7 +61,7 @@ class Sample(BaseFile):
 
 	def dump_data(self) -> Any:
 		return {
-			"name": self._name,
+			"name": self.name,
 			"length": self.length,
 			"compressed_length": self.compressed_length
 		}
@@ -88,9 +87,9 @@ class FSB4(BaseArchiveFile):
 			return
 		
 		reader_pos: int = self._reader.tell()
-		self._reader.seek(self._offset, 0)
+		self._reader.seek(self.offset, 0)
 
-		self._header = self._reader.read_string(4)
+		self.header = self._reader.read_string(4)
 		self.num_samples = self._reader.read_int32()
 
 		self.shdr_size = self._reader.read_int32()
@@ -109,16 +108,16 @@ class FSB4(BaseArchiveFile):
 		
 		reader_pos: int = self._reader.tell()
 
-		self._reader.seek(self._offset + 48, 0)
+		self._reader.seek(self.offset + 48, 0)
 
-		self._files = [None] * self.num_samples # type: ignore
-		self._file_hashes = {}
+		self.files = [None] * self.num_samples # type: ignore
+		self.file_hashes = {}
 		for i in range(self.num_samples):
 			sample: Sample = Sample(self, self._reader.tell())
 			sample.open(self._reader)
 			sample.read_header()
-			self._files[i] = sample
-			self._file_hashes[i] = sample
+			self.files[i] = sample
+			self.file_hashes[i] = sample
 			# self._reader.seek(sample.compressed_length, 1)
 
 		self._reader.seek(reader_pos, 0)
@@ -132,5 +131,5 @@ class FSB4(BaseArchiveFile):
 			"version": self.version,
 			"flags": self.flags,
 			
-			"files": [sample.dump_data() for sample in self._files]
+			"files": [sample.dump_data() for sample in self.files]
 		}

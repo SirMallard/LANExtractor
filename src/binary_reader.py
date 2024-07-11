@@ -1,10 +1,10 @@
 from struct import unpack
-from io import IOBase
+from io import BufferedIOBase
 from typing import Any
 
 class BinaryReader():
-	_file: IOBase
-	_endian: str
+	file: BufferedIOBase
+	endian: str
 
 	INT8: int = 1
 	UINT8: int = 1
@@ -28,21 +28,21 @@ class BinaryReader():
 	INT: int = 4
 	LONG: int = 8
 
-	def __init__(self, file: IOBase) -> None:
-		self._file = file
-		self._endian = "@"
+	def __init__(self, file: BufferedIOBase) -> None:
+		self.file = file
+		self.endian = "@"
 
-	def set_endian(self, endian: str) -> None:
-		self._endian = endian
+	def setendian(self, endian: str) -> None:
+		self.endian = endian
 
 	def tell(self) -> int:
-		return self._file.tell()
+		return self.file.tell()
 
 	def seek(self, offset: int, end: int) -> None:
-		self._file.seek(offset, end)
+		self.file.seek(offset, end)
 
 	def read(self, format: str, length: int) -> Any:
-		return unpack(f"{self._endian}{format}", self._file.read(length))[0]
+		return unpack(f"{self.endian}{format}", self.file.read(length))[0]
 
 	def read_uint8(self) -> int:
 		return self.read("B", self.UINT8)
@@ -101,9 +101,8 @@ class BinaryReader():
 		self.read_chunk(length)
 
 	def read_chunk(self, length: int) -> bytes:
-		return self._file.read(length)
+		return self.file.read(length)
 
 	def read_file(self) -> bytes:
 		self.seek(0, 0)
-		return self._file.read()
-		
+		return self.file.read()

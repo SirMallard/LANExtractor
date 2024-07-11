@@ -28,9 +28,9 @@ class BINK(BaseFile):
 			return
 		
 		reader_pos: int = self._reader.tell()
-		self._reader.seek(self._offset, 0)
+		self._reader.seek(self.offset, 0)
 
-		self._header = self._reader.read_string(4)
+		self.header = self._reader.read_string(4)
 		self.data_size = self._reader.read_uint32()
 		self.num_frames = self._reader.read_uint32()
 		self.largest_frame = self._reader.read_uint32()

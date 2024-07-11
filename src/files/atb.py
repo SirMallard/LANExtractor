@@ -18,9 +18,9 @@ class ATB(BaseFile):
 			return
 		
 		reader_pos: int = self._reader.tell()
-		self._reader.seek(self._offset, 0)
+		self._reader.seek(self.offset, 0)
 
-		self._header = self._reader.read_string(4)
+		self.header = self._reader.read_string(4)
 		self.num_containers = self._reader.read_uint16()
 		self.containers = [None] * self.num_containers # type: ignore
 
@@ -32,7 +32,7 @@ class ATB(BaseFile):
 		
 		reader_pos: int = self._reader.tell()
 
-		self._reader.seek(self._offset + 4 + self._reader.UINT16, 0)
+		self._reader.seek(self.offset + 4 + self._reader.UINT16, 0)
 
 		# for i in range(self.num_containers):
 		# 	container: dict[str, Any] = self.read_object(self._reader)

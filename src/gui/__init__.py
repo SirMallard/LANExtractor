@@ -1,6 +1,14 @@
+from pathlib import Path
 from imgui_bundle import ImVec2, imgui
 from imgui_bundle.python_backends.glfw_backend import GlfwRenderer
 from numpy import array
+from threading import Thread
+
+from gui.app_data import AppData
+from gui.hash import render_hash_window
+from gui.list_view import render_list_view
+from gui.tool_bar import render_tool_bar
+from gui.tree_view import render_tree_view
 
 internal = imgui.internal
 import OpenGL.GL as gl
@@ -15,13 +23,20 @@ WINDOW_NAME: str = "L.A. Noire Extractor"
 class Gui():
 	window: glfw._GLFWwindow # type: ignore
 
+	app_data: AppData
+
 	show_demo_window: bool = False
 	show_style_editor: bool = False
+	show_hash_window: bool = False
 
 	icons: dict[str, int]
 
 	def __init__(self) -> None:
+		self.app_data = AppData(Path("X:\\SteamLibrary\\steamapps\\common\\L.A.Noire"))
 		self.icons = {}
+
+	def init_on_window(self):
+		self.app_data.generate_node()
 
 	def load_image(self, file: str) -> int:
 		image = Image.open(file)
@@ -117,6 +132,8 @@ class Gui():
 			glfw.swap_buffers(self.window)
 
 			if first_time:
+				thread: Thread = Thread(target=self.init_on_window)
+				thread.start()
 				first_time = False
 
 		impl.shutdown()
@@ -130,10 +147,10 @@ class Gui():
 
 		self.render_menu_bar()
 		self.render_status_bar()
-		self.render_tool_bar()
+		render_tool_bar(self.app_data)
 
-		self.render_list_view()
-		self.render_tree_view()
+		render_list_view(self.app_data)
+		render_tree_view(self.app_data)
 		self.render_info_view()
 
 	def render_menu_bar(self):
@@ -160,6 +177,7 @@ class Gui():
 				if imgui.begin_menu("View"):
 					imgui.end_menu()
 				if imgui.begin_menu("Tools"):
+					self.show_hash_window = imgui.menu_item("Hash", "", self.show_hash_window)[1]
 					imgui.menu_item("Hash Lookup", "", False)
 					imgui.menu_item("Archive search", "Ctrl+Shift+F", False)
 					if imgui.begin_menu("Debug"):
@@ -178,103 +196,18 @@ class Gui():
 		if self.show_style_editor:
 			imgui.show_style_editor()
 
+		if self.show_hash_window:
+			self.show_hash_window = render_hash_window(self.app_data, self.show_hash_window)
+
 	def render_status_bar(self):
 		flags: imgui.WindowFlags = imgui.WindowFlags_.no_scrollbar.value | imgui.WindowFlags_.menu_bar.value
 		if internal.begin_viewport_side_bar("##StatusBar", imgui.get_main_viewport(), imgui.Dir_.down.value, imgui.get_frame_height(), flags):
 			if imgui.begin_menu_bar():
-				imgui.text("LA Noire!")
+				imgui.text(self.app_data.status_text["file_scan"])
+				imgui.text(self.app_data.status_text["archive_scan"])
+				imgui.text(self.app_data.status_text["folders"])
+				imgui.text(self.app_data.status_text["files"])
 				imgui.end_menu_bar()
-		imgui.end()
-
-	def render_tool_bar(self):
-		style: imgui.Style = imgui.get_style()
-		if internal.begin_viewport_side_bar("##MenuBar", imgui.get_main_viewport(), imgui.Dir_.up.value, 0, imgui.WindowFlags_.none.value):
-			imgui.push_style_var(imgui.StyleVar_.item_spacing.value, ImVec2(style.frame_padding.y, style.item_spacing.y))
-
-			imgui.arrow_button("##BackButton", imgui.Dir_.left.value)
-			imgui.same_line()
-			imgui.arrow_button("##ForwardButton", imgui.Dir_.right.value)
-			imgui.same_line()
-			imgui.arrow_button("##UpButton", imgui.Dir_.up.value)
-
-			imgui.same_line()
-			imgui.push_item_width(-(2 * imgui.get_frame_height() + 4 * style.item_spacing.x + 1 + max(imgui.get_window_width() * 0.2, 200)))
-			imgui.input_text("###Path", "X:\\SteamLibrary\\steamapps\\common\\L.A.Noire\\final\\pc", imgui.InputTextFlags_.auto_select_all.value)
-			imgui.pop_item_width()
-
-			imgui.same_line()
-			imgui.arrow_button("##GoButton", imgui.Dir_.right.value)
-
-			imgui.same_line()
-			internal.separator_ex(internal.SeparatorFlags_.vertical.value)
-
-			imgui.same_line()
-			imgui.push_item_width(-(imgui.get_frame_height() + style.item_spacing.x))
-			imgui.input_text_with_hint("###Search", "Search", "", imgui.InputTextFlags_.auto_select_all.value)
-			imgui.pop_item_width()
-
-			imgui.same_line()
-			imgui.arrow_button("##SearchButton", imgui.Dir_.right.value)
-
-			imgui.pop_style_var()
-		imgui.end()
-
-	def render_list_view(self):
-		flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
-
-		# imgui.push_style_var(imgui.StyleVar_.window_padding.value, ImVec2(0, 0))
-		# imgui.push_style_var(imgui.StyleVar_.window_border_size.value, 0)
-		# imgui.push_style_var(imgui.StyleVar_.frame_border_size.value, 0)
-		if not imgui.begin("List View", None, flags)[0]:
-			# imgui.pop_style_var(3)
-			imgui.end()
-			return
-		# imgui.pop_style_var()
-
-		table_flags: imgui.TableFlags = imgui.TableFlags_.resizable.value + imgui.TableFlags_.reorderable.value | imgui.TableFlags_.sortable.value | imgui.TableFlags_.borders_outer.value | imgui.TableFlags_.borders_inner_v.value | imgui.TableFlags_.scroll_y.value
-		if imgui.begin_table("##FileTable", 4, table_flags, ImVec2(0, 0)):
-			column_flags: imgui.TableColumnFlags = imgui.TableColumnFlags_.width_fixed.value
-			imgui.table_setup_column("Name", column_flags, 400)
-			imgui.table_setup_column("Type", column_flags, 160)
-			imgui.table_setup_column("Size", column_flags, 100)
-			imgui.table_setup_column("Attributes", column_flags, 160)
-			
-			imgui.table_setup_scroll_freeze(1, 1)
-			imgui.table_headers_row()
-
-			for i in range(100):
-				imgui.table_next_row()
-
-				if imgui.table_set_column_index(0):
-					imgui.image(self.icons.get("folder", 0) if i % 2 == 0 else self.icons.get("archive", 0), ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
-					imgui.same_line()
-					(hit, select) = imgui.selectable(f"Asset-{i}", False, imgui.SelectableFlags_.allow_double_click.value | imgui.SelectableFlags_.span_all_columns.value)
-					if hit:
-						print(f"Hit: {i} {select}")
-
-					imgui.table_next_column()
-					imgui.text("Folder" if i % 2 == 0 else "Archive")
-
-					imgui.table_next_column()
-					imgui.text("3.142 5GB")
-
-					imgui.table_next_column()
-					imgui.text("BIG Archive")
-
-
-			imgui.end_table()
-
-		# imgui.pop_style_var(2)
-		imgui.end()
-
-	def render_tree_view(self):
-		flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
-		if not imgui.begin("Tree View", None, flags)[0]:
-			imgui.end()
-			return
-
-		imgui.text("Tree view!")
-
 		imgui.end()
 
 	def render_info_view(self):
@@ -286,6 +219,7 @@ class Gui():
 		imgui.text("File Info!")
 
 		imgui.end()
+
 
 	def build_dockspace(self, first_time: bool):
 		viewport: imgui.Viewport = imgui.get_main_viewport()

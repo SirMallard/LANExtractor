@@ -15,9 +15,9 @@ class MP3(BaseFile):
 			return
 		
 		reader_pos: int = self._reader.tell()
-		self._reader.seek(self._offset, 0)
+		self._reader.seek(self.offset, 0)
 
-		self._header = self._reader.read_string(4)
+		self.header = self._reader.read_string(4)
 
 		self._reader.seek(reader_pos, 0)
 
