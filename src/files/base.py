@@ -100,7 +100,6 @@ class BaseFile:
 
 class BaseArchiveFile(BaseFile):
 	files: list[BaseFile]
-	file_hashes: dict[int, BaseFile]
 
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
@@ -114,11 +113,6 @@ class BaseArchiveFile(BaseFile):
 		if not self._content_ready:
 			return []
 		return self.files
-
-	def get_file_byhash(self, hash: int) -> BaseFile | None:
-		if not self._content_ready:
-			return None
-		return self.file_hashes.get(hash)
 
 	def close(self) -> None:
 		if self._content_ready:

@@ -3,9 +3,14 @@ from imgui_bundle import ImVec2, imgui
 from gui.app_data import AppData, FolderNode
 
 def render_tree(app_data: AppData, node: FolderNode):
-	open: bool = imgui.tree_node_ex("##" + node.name, imgui.TreeNodeFlags_.span_full_width.value | imgui.TreeNodeFlags_.frame_padding.value | imgui.TreeNodeFlags_.open_on_double_click.value | imgui.TreeNodeFlags_.open_on_arrow.value)
+	flags: imgui.TreeNodeFlags = imgui.TreeNodeFlags_.span_full_width.value | imgui.TreeNodeFlags_.frame_padding.value | imgui.TreeNodeFlags_.open_on_double_click.value | imgui.TreeNodeFlags_.open_on_arrow.value
+	if selected := app_data.selected_node == node:
+		flags |= imgui.TreeNodeFlags_.selected.value
+	open: bool = imgui.tree_node_ex("##" + node.name, flags)
 	if imgui.is_mouse_double_clicked(0) and imgui.is_item_hovered():
 		app_data.set_current_node(node)
+	elif imgui.is_mouse_clicked(0) and imgui.is_item_hovered() and not selected:
+		app_data.set_selected_node(node)
 	imgui.same_line()
 	imgui.align_text_to_frame_padding()
 	imgui.image(1, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))

@@ -16,7 +16,7 @@ def crc32_hash(value: str) -> int:
 	return ~(result & 0xFFFFFFFF) & 0xFFFFFFFF
 
 def render_hash_window(app_data: AppData, show_hash_window: bool) -> bool:
-	imgui.set_next_window_size(ImVec2(400, 100))
+	imgui.set_next_window_size(ImVec2(500, 100))
 	(is_open, show) = imgui.begin("Hash", show_hash_window, imgui.WindowFlags_.no_resize.value)
 	show = show or False
 	if not is_open:

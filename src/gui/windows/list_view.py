@@ -2,16 +2,20 @@ from imgui_bundle import ImVec2, imgui
 from gui.app_data import AppData
 
 def render_files(app_data: AppData):
+	flags: imgui.SelectableFlags = imgui.SelectableFlags_.allow_double_click.value | imgui.SelectableFlags_.span_all_columns.value | imgui.internal.SelectableFlagsPrivate_.no_pad_with_half_spacing.value
+
 	for folder in app_data.current_node.folders.values():
 		imgui.table_next_row(imgui.TableRowFlags_.none.value, imgui.get_frame_height())
 
 		if imgui.table_set_column_index(0):
 			imgui.image(1, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
 			imgui.same_line()
-			(hit, _) = imgui.selectable(folder.name, False, imgui.SelectableFlags_.allow_double_click.value | imgui.SelectableFlags_.span_all_columns.value | imgui.internal.SelectableFlagsPrivate_.no_pad_with_half_spacing.value, ImVec2(0, imgui.get_frame_height()))
+			(hit, selected) = imgui.selectable(folder.name, app_data.selected_node == folder, flags, ImVec2(0, imgui.get_frame_height()))
 			if hit:
 				if imgui.is_mouse_double_clicked(0):
 					app_data.set_current_node(folder)
+				else:
+					app_data.set_selected_node(folder if selected else None)
 
 			imgui.table_next_column()
 			imgui.text(folder.type)
@@ -28,7 +32,9 @@ def render_files(app_data: AppData):
 		if imgui.table_set_column_index(0):
 			imgui.image(0, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
 			imgui.same_line()
-			(hit, _) = imgui.selectable(file.name, False, imgui.SelectableFlags_.allow_double_click.value | imgui.SelectableFlags_.span_all_columns.value | imgui.internal.SelectableFlagsPrivate_.no_pad_with_half_spacing.value, ImVec2(0, imgui.get_frame_height()))
+			(hit, selected) = imgui.selectable(file.name, app_data.selected_node == file, flags, ImVec2(0, imgui.get_frame_height()))
+			if hit and not imgui.is_mouse_double_clicked(0):
+				app_data.set_selected_node(file if selected else None)
 
 			imgui.table_next_column()
 			imgui.text(file.type)

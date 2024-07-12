@@ -96,6 +96,7 @@ class AppData:
 
 	root_node: FolderNode
 	current_node: FolderNode
+	selected_node: Node | None
 
 	archives: list[Archive]
 
@@ -104,6 +105,7 @@ class AppData:
 		self.root_node = FolderNode("L.A. Noire", Path(""), Path(self.game_path))
 		self.root_node.parent = self.root_node
 		self.current_node = self.root_node
+		self.selected_node = None
 
 		self.tools = Tools()
 
@@ -121,6 +123,10 @@ class AppData:
 		self.current_node = node
 		self.set_status_text("folders", f"Folders: {len(node.folders)}")
 		self.set_status_text("files", f"Files: {len(node.files)}")
+		self.set_selected_node(None)
+
+	def set_selected_node(self, node: Node | None):
+		self.selected_node = node
 
 	def generate_node(self):
 		for path in self.game_path.glob("**/*"):

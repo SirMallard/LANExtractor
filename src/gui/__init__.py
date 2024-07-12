@@ -5,10 +5,11 @@ from numpy import array
 from threading import Thread
 
 from gui.app_data import AppData
-from gui.hash import render_hash_window
-from gui.list_view import render_list_view
-from gui.tool_bar import render_tool_bar
-from gui.tree_view import render_tree_view
+from gui.windows.file_info import render_info_view
+from gui.windows.hash import render_hash_window
+from gui.windows.list_view import render_list_view
+from gui.windows.tool_bar import render_tool_bar
+from gui.windows.tree_view import render_tree_view
 
 internal = imgui.internal
 import OpenGL.GL as gl
@@ -35,8 +36,9 @@ class Gui():
 		self.app_data = AppData(Path("X:\\SteamLibrary\\steamapps\\common\\L.A.Noire"))
 		self.icons = {}
 
-	def init_on_window(self):
-		self.app_data.generate_node()
+	def init_on_window(self) -> None:
+		# self.app_data.generate_node()
+		return
 
 	def load_image(self, file: str) -> int:
 		image = Image.open(file)
@@ -139,7 +141,7 @@ class Gui():
 		impl.shutdown()
 		glfw.terminate()
 	
-	def quit(self):
+	def quit(self) -> None:
 		sys.exit(0)
 
 	def render(self, first_time: bool):
@@ -151,7 +153,7 @@ class Gui():
 
 		render_list_view(self.app_data)
 		render_tree_view(self.app_data)
-		self.render_info_view()
+		render_info_view(self.app_data)
 
 	def render_menu_bar(self):
 		flags: imgui.WindowFlags = imgui.WindowFlags_.no_scrollbar.value | imgui.WindowFlags_.menu_bar.value
@@ -209,17 +211,6 @@ class Gui():
 				imgui.text(self.app_data.status_text["files"])
 				imgui.end_menu_bar()
 		imgui.end()
-
-	def render_info_view(self):
-		flags: imgui.WindowFlags =  imgui.WindowFlags_.no_collapse.value | imgui.WindowFlags_.no_move.value
-		if not imgui.begin("File Info", None, flags)[0]:
-			imgui.end()
-			return
-
-		imgui.text("File Info!")
-
-		imgui.end()
-
 
 	def build_dockspace(self, first_time: bool):
 		viewport: imgui.Viewport = imgui.get_main_viewport()
