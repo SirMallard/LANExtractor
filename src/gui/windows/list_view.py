@@ -8,7 +8,7 @@ def render_files(app_data: AppData):
 		imgui.table_next_row(imgui.TableRowFlags_.none.value, imgui.get_frame_height())
 
 		if imgui.table_set_column_index(0):
-			imgui.image(1, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
+			imgui.image(folder.icon, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
 			imgui.same_line()
 			(hit, selected) = imgui.selectable(folder.name, app_data.selected_node == folder, flags, ImVec2(0, imgui.get_frame_height()))
 			if hit:
@@ -21,7 +21,7 @@ def render_files(app_data: AppData):
 			imgui.text(folder.type)
 
 			imgui.table_next_column()
-			imgui.text(str(folder.size))
+			imgui.text(folder.get_size())
 
 			imgui.table_next_column()
 			imgui.text(", ".join(folder.attributes))
@@ -30,17 +30,20 @@ def render_files(app_data: AppData):
 		imgui.table_next_row(imgui.TableRowFlags_.none.value, imgui.get_frame_height())
 
 		if imgui.table_set_column_index(0):
-			imgui.image(0, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
+			imgui.image(file.icon, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
 			imgui.same_line()
 			(hit, selected) = imgui.selectable(file.name, app_data.selected_node == file, flags, ImVec2(0, imgui.get_frame_height()))
-			if hit and not imgui.is_mouse_double_clicked(0):
-				app_data.set_selected_node(file if selected else None)
+			if hit:
+				if imgui.is_mouse_double_clicked(0):
+					app_data.open_file(file)
+				else:
+					app_data.set_selected_node(file if selected else None)
 
 			imgui.table_next_column()
 			imgui.text(file.type)
 
 			imgui.table_next_column()
-			imgui.text(str(file.size))
+			imgui.text(file.get_size())
 
 			imgui.table_next_column()
 			imgui.text(", ".join(file.attributes))

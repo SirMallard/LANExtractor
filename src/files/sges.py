@@ -109,9 +109,6 @@ class SGES(BaseArchiveFile):
 		file.read_contents()
 
 		self.files = [file]
-		self.file_hashes = {
-			self.hash: file
-		}
 
 		self._reader.seek(reader_pos, 0)
 		self._content_ready = True
@@ -120,6 +117,9 @@ class SGES(BaseArchiveFile):
 		if self._content_ready:
 			self._file_file.close()
 		super().close()
+
+	def get_attributes(self) -> list[str]:
+		return super().get_attributes() + ["Compressed"]
 
 	def dump_data(self) -> dict[str, Any]:
 		if not self._content_ready:

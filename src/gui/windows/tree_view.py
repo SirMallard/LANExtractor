@@ -13,7 +13,7 @@ def render_tree(app_data: AppData, node: FolderNode):
 		app_data.set_selected_node(node)
 	imgui.same_line()
 	imgui.align_text_to_frame_padding()
-	imgui.image(1, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
+	imgui.image(node.icon, ImVec2(imgui.get_text_line_height(), imgui.get_text_line_height()))
 	imgui.same_line()
 	imgui.text(node.name)
 	if open:

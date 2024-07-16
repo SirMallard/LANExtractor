@@ -88,6 +88,9 @@ class BaseFile:
 		
 		return [(self.offset, self.size, self.get_full_name(), self._reader)]
 
+	def get_attributes(self) -> list[str]:
+		return []
+
 	def dump_data(self) -> dict[str, Any]:
 		return {
 			"hash": self.hash,
@@ -119,3 +122,11 @@ class BaseArchiveFile(BaseFile):
 			for file in self.files:
 				file.close()
 		super().close()
+
+class BaseAudioFile(BaseFile):
+	length: float
+	sample_length: int
+	frequency: int
+
+	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
+		super().__init__(archive, hash, offset, size)

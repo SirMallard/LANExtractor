@@ -1,15 +1,21 @@
 from pathlib import Path
+from dataclasses import dataclass
 
 from archives.archive import Archive
 from archives.big import Big
 from archives.wad import Wad
+from files.base import BaseFile
+from gui.files.audio_player import AudioPlayer
+from gui.files.base import BaseFileWindow
+from utils.formats import Format, format_file_size
 
 class Node:
 	name: str
 	path: Path
 	full_path: Path
 
-	size: int
+	icon: int
+	size: str
 	type: str
 	attributes: list[str]
 
@@ -18,9 +24,12 @@ class Node:
 		self.path = path
 		self.full_path = full_path
 
-		self.size = 0
+		self.size = ""
 		self.type = ""
 		self.attributes = []
+
+	def get_size(self):
+		return self.size
 
 class FolderNode(Node):
 	parent: 'FolderNode'
@@ -28,6 +37,7 @@ class FolderNode(Node):
 	is_archive: bool
 	is_game_archive: bool
 
+	type = "Folder"
 	files: dict[str, 'FileNode']
 	folders: dict[str, 'FolderNode']
 
@@ -40,7 +50,6 @@ class FolderNode(Node):
 		self.files = {}
 		self.folders = {}
 
-		self.type = "Folder"
 
 	def add_file(self, file: 'FileNode') -> None:
 		self.files[file.name] = file
@@ -67,6 +76,9 @@ class FolderNode(Node):
 	def remove_folder(self, child: 'FolderNode') -> 'FolderNode | None':
 		return self.folders.pop(child.name)
 
+	def get_size(self):
+		return f"{len(self.files) + len(self.folders)} Items"
+
 class FileNode(Node):
 	name: str
 	path: Path
@@ -74,6 +86,7 @@ class FileNode(Node):
 	
 	parent: FolderNode
 
+	file: BaseFile | None
 	is_game_file: bool
 
 	def __init__(self, name: str, path: Path, full_path: Path) -> None:
@@ -87,16 +100,31 @@ class Tools:
 	hashed_string: int = 0
 	string: str = ""
 
+@dataclass
+class FileAssociation:
+	format: Format = Format.UNKNOWN
+	name: str = "Unknown"
+	icon: int = 0
+	action: type[BaseFileWindow] | None = None
+
+	def apply_to_node(self, node: Node):
+		node.type = self.name
+		node.icon = self.icon
+
 class AppData:
 	game_path: Path
 
 	tools: Tools
+	icons: dict[str, int]
+	file_associations: dict[str, FileAssociation]
 
 	status_text: dict[str, str]
 
 	root_node: FolderNode
 	current_node: FolderNode
 	selected_node: Node | None
+
+	open_windows: list[BaseFileWindow]
 
 	archives: list[Archive]
 
@@ -108,6 +136,10 @@ class AppData:
 		self.selected_node = None
 
 		self.tools = Tools()
+		self.icons = {}
+		self.file_associations = {}
+
+		self.open_windows = []
 
 		self.status_text = {
 			"file_scan": "",
@@ -115,6 +147,22 @@ class AppData:
 			"folders": "",
 			"files": "",
 		}
+
+	def add_file_associations(self):
+		FolderNode.icon = self.icons.get("folder", 0)
+		FileNode.icon = self.icons.get("unknown", 0)
+		FileAssociation.icon = self.icons.get("unknown", 0)
+
+		self.file_associations["BIG"] = FileAssociation(Format.BIG, "BIG Archive", self.icons.get("archive", 0))
+		self.file_associations["WAD"] = FileAssociation(Format.WAD, "WAD Archive", self.icons.get("archive", 0))
+		
+		self.file_associations["SGES"] = FileAssociation(Format.SGES, "Segmented (SGES)", self.icons.get("file", 0))
+		self.file_associations["DDS "] = FileAssociation(Format.DDS, "DirectDraw Surface (DDS)", self.icons.get("image_file", 0))
+		self.file_associations["FSB4"] = FileAssociation(Format.FSB4, "FMOD Sound Bank (FSB4)", self.icons.get("audio_file", 0), AudioPlayer)
+		self.file_associations["OggS"] = FileAssociation(Format.OGG, "Ogg Audio (OggS)", self.icons.get("audio_file", 0), AudioPlayer)
+		self.file_associations["BIKi"] = FileAssociation(Format.BINK, "Bink Video (BIKi)", self.icons.get("video_file", 0))
+		self.file_associations["ATB\x04"] = FileAssociation(Format.ATB, "Config (ATB)", self.icons.get("config_file", 0))
+		self.file_associations["FNT\x03"] = FileAssociation(Format.FNT, "Font (FNT)", self.icons.get("font_file", 0))
 
 	def set_status_text(self, topic: str, status: str):
 		self.status_text[topic] = status
@@ -155,7 +203,6 @@ class AppData:
 
 		self.set_status_text("file_scan", "Scanning: Done")
 		self.set_status_text("archive_scan", "")
-		self.set_current_node(self.root_node)
 
 	def archive_generate_node(self, path: Path) -> FolderNode:
 		archive_node = FolderNode(path.name, path, self.game_path / path)
@@ -168,9 +215,11 @@ class AppData:
 		if path.suffixes[-2] == ".big":
 			archive = Big(path.name, path, self.game_path / path)
 			archive_node.attributes.append("BIG Archive")
+			self.file_associations["BIG"].apply_to_node(archive_node)
 		else:
 			archive = Wad(path.name, path, self.game_path / path)
 			archive_node.attributes.append("WAD Archive")
+			self.file_associations["WAD"].apply_to_node(archive_node)
 
 		archive.open()
 		archive.scan_archive()
@@ -194,7 +243,25 @@ class AppData:
 
 			file_node: FileNode = FileNode(file.path.name, file.path, archive.full_path / file.path)
 			file_node.is_game_file = True
+			file_node.file = file
+			file_node.size = format_file_size(file.size)
 			file_node.type = file.type.name
+			file_node.attributes.extend(file.get_attributes())
+			if association := self.file_associations.get(file.header):
+				association.apply_to_node(file_node)
 			parent_node.add_file(file_node)
 
 		return archive_node
+
+	def open_file(self, file_node: FileNode):
+		if file := file_node.file:
+			if association := self.file_associations.get(file_node.file.header):
+				if action := association.action:
+					file.archive.open()
+					file.archive.open_file(file)
+					file.read_header()
+					file.read_contents()
+					file.archive.close()
+					
+					window = action(file, lambda : self.open_windows.remove(window))
+					self.open_windows.append(window)

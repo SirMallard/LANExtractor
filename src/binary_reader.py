@@ -1,10 +1,12 @@
 from struct import unpack
-from io import BufferedIOBase
+from io import BufferedIOBase, BytesIO
 from typing import Any
 
 class BinaryReader():
 	file: BufferedIOBase
 	endian: str
+
+	buffer: BytesIO
 
 	INT8: int = 1
 	UINT8: int = 1
@@ -31,6 +33,7 @@ class BinaryReader():
 	def __init__(self, file: BufferedIOBase) -> None:
 		self.file = file
 		self.endian = "@"
+		self.buffer = BytesIO()
 
 	def setendian(self, endian: str) -> None:
 		self.endian = endian
@@ -40,9 +43,18 @@ class BinaryReader():
 
 	def seek(self, offset: int, end: int) -> None:
 		self.file.seek(offset, end)
+		self.buffer.flush()
 
 	def read(self, format: str, length: int) -> Any:
-		return unpack(f"{self.endian}{format}", self.file.read(length))[0]
+		data: bytes
+		if self.buffer.getbuffer().nbytes >= length:
+			self.file.seek(length, 1)
+			data = self.buffer.read(length)
+		else:
+			self.buffer.flush()
+			data = self.file.read(length)
+		return unpack(f"{self.endian}{format}", data)[0]
+		
 
 	def read_uint8(self) -> int:
 		return self.read("B", self.UINT8)
@@ -106,3 +118,6 @@ class BinaryReader():
 	def read_file(self) -> bytes:
 		self.seek(0, 0)
 		return self.file.read()
+
+	def buffer_chunk(self, length: int) -> None:
+		self.file.readinto(self.buffer.getbuffer())

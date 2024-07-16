@@ -9,8 +9,22 @@ from enum import Enum
 from typing import Any
 from collections import Counter
 
+class Entry:
+	hash: int
+	offset: int
+	size: int
+	name: str
+
+	def __init__(self, hash: int, offset: int, size: int) -> None:
+		self.hash = hash
+		self.offset = offset
+		self.size = size
+		self.name = ""
+
 class Archive:
 	type: ArchiveType
+	
+	size: int
 
 	name: str
 	path: Path
@@ -21,10 +35,9 @@ class Archive:
 	_file: BufferedReader | None
 	_reader: BinaryReader | None
 
-	size: int
+	entries: list[Entry]
 	num_files: int
 	files: list[BaseFile]
-	file_hashes: dict[int, BaseFile]
 
 	def __init__(self, name: str, path: Path, full_path: Path) -> None:
 		self.name = name
@@ -36,13 +49,12 @@ class Archive:
 		self._reader = None
 
 		self.size = getsize(self.full_path)
-		self.file_hashes = {}
 
 	def open(self):
 		if self._open:
 			return
 
-		file: BufferedReader = open(self.full_path, "br", buffering=2^20) # type: ignore
+		file: BufferedReader = open(self.full_path, "br") # type: ignore
 		self._file = file
 		self._reader = BinaryReader(self._file)
 		self._open = True
@@ -81,12 +93,12 @@ class Archive:
 
 		for file in self.files:
 			file.read_contents()
-	
-	def get_files(self) -> list[BaseFile]:
-		return self.files
-	
-	def get_file_by_hash(self, hash: int) -> BaseFile | None:
-		return self.file_hashes.get(hash)
+
+	def open_file(self, file: BaseFile):
+		if not self._open or self._reader == None:
+			return
+		
+		file.open(self._reader)
 
 	@staticmethod
 	def create_file(reader: BinaryReader, archive: Any, hash: int, offset: int, size: int) -> BaseFile:

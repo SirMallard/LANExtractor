@@ -30,14 +30,12 @@ class Gui():
 	show_style_editor: bool = False
 	show_hash_window: bool = False
 
-	icons: dict[str, int]
-
 	def __init__(self) -> None:
 		self.app_data = AppData(Path("X:\\SteamLibrary\\steamapps\\common\\L.A.Noire"))
 		self.icons = {}
 
 	def init_on_window(self) -> None:
-		# self.app_data.generate_node()
+		self.app_data.generate_node()
 		return
 
 	def load_image(self, file: str) -> int:
@@ -107,9 +105,6 @@ class Gui():
 		# imgui.backends.glfw_init_for_opengl(window.)
 		imgui.backends.opengl3_init("#version 150")
 
-		self.icons["folder"] = self.load_image("src\\assets\\folder.ico")
-		self.icons["archive"] = self.load_image("src\\assets\\archive.ico")
-
 		imgui.backends.opengl3_new_frame()
 
 		self.init_style()
@@ -136,6 +131,7 @@ class Gui():
 			if first_time:
 				thread: Thread = Thread(target=self.init_on_window)
 				thread.start()
+				
 				first_time = False
 
 		impl.shutdown()
@@ -145,6 +141,11 @@ class Gui():
 		sys.exit(0)
 
 	def render(self, first_time: bool):
+		if first_time:
+			for path in Path(f"{__file__}\\..\\..\\assets").glob("*.ico"):
+				self.app_data.icons[path.stem] = self.load_image(str(path))
+			self.app_data.add_file_associations()
+
 		self.build_dockspace(first_time)
 
 		self.render_menu_bar()
@@ -154,6 +155,9 @@ class Gui():
 		render_list_view(self.app_data)
 		render_tree_view(self.app_data)
 		render_info_view(self.app_data)
+
+		for window in self.app_data.open_windows:
+			window.render()
 
 	def render_menu_bar(self):
 		flags: imgui.WindowFlags = imgui.WindowFlags_.no_scrollbar.value | imgui.WindowFlags_.menu_bar.value
@@ -209,6 +213,7 @@ class Gui():
 				imgui.text(self.app_data.status_text["archive_scan"])
 				imgui.text(self.app_data.status_text["folders"])
 				imgui.text(self.app_data.status_text["files"])
+				imgui.text(f"FPS: {imgui.get_io().framerate:.1f}")
 				imgui.end_menu_bar()
 		imgui.end()
 

@@ -6,21 +6,23 @@ class ArchiveType(Enum):
 
 class Format(Enum):
 	UNKNOWN = 0
-	SGES = 1
-	FSB4 = 2
-	BIN = 3
-	TRM = 4
-	OGG = 5
-	BINK = 6
-	FNT = 7
-	DDS = 8
-	ATB = 9
-	FEV1 = 10
-	CBF1 = 11
-	PTM = 12
-	TRLA = 13
-	MP3 = 14
-	RNM = 15
+	BIG = 1
+	WAD = 2
+	SGES = 3
+	FSB4 = 4
+	BIN = 5
+	TRM = 6
+	OGG = 7
+	BINK = 8
+	FNT = 9
+	DDS = 10
+	ATB = 11
+	FEV1 = 12
+	CBF1 = 13
+	PTM = 14
+	TRLA = 15
+	MP3 = 16
+	RNM = 17
 
 	@staticmethod
 	def headerToFormat(header: str) -> Enum:
@@ -130,3 +132,10 @@ class Format(Enum):
 				return "roadnavdata"
 			case _:
 				return "unknown"
+
+def format_file_size(num: float):
+    for unit in ("", "K", "M", "G", "T", "P", "E", "Z"):
+        if abs(num) < 1000.0:
+            return f"{num:3.1f} {unit}B"
+        num /= 1000.0
+    return f"{num:.1f}YB"
