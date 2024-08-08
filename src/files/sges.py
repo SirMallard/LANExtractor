@@ -52,8 +52,7 @@ class SGES(BaseArchiveFile):
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
 		self.version = self._reader.read_uint16()
@@ -65,15 +64,13 @@ class SGES(BaseArchiveFile):
 
 		self.data_offset = align(self.offset + 12 + (4 * self.u0) + (2 * self._reader.UINT16 * self.num_chunks), 16)
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def read_contents(self) -> None:
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-
-		self._reader.seek(self.offset + 4 + (2 * self._reader.UINT16) + (4 * self._reader.UINT8), 0)
+		reader_pos: int = self._reader.seek(self.offset + 4 + (2 * self._reader.UINT16) + (4 * self._reader.UINT8))
 		
 		self.uobjects = [self._reader.read_uint32() for _ in range(self.u0)]
 		
@@ -91,7 +88,7 @@ class SGES(BaseArchiveFile):
 
 		for i in range(self.num_chunks):
 			chunk = self.chunks[i]
-			self._reader.seek(chunk.offset, 0)
+			self._reader.seek(chunk.offset)
 			
 			if chunk.flags & 0x10:
 				self._file_file.write(decompress(self._reader.read_chunk(chunk.size), -15))
@@ -110,7 +107,7 @@ class SGES(BaseArchiveFile):
 
 		self.files = [file]
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 		self._content_ready = True
 
 	def close(self) -> None:

@@ -29,7 +29,8 @@ class Archive:
 	name: str
 	path: Path
 	full_path: Path
-	file_name: str
+
+	archive_name: str
 
 	_open: bool
 	_file: BufferedReader | None
@@ -43,6 +44,8 @@ class Archive:
 		self.name = name
 		self.path = path
 		self.full_path = full_path
+
+		self.archive_name = Path(Path(name).stem).stem
 
 		self._open = False
 		self._file = None
@@ -118,8 +121,9 @@ class Archive:
 	def dump_data(self) -> Any:
 		return {
 			"name": self.name,
-			"path": self.path,
-			"full_path": self.full_path,
+			"archive_name": self.archive_name,
+			"path": str(self.path),
+			"full_path": str(self.full_path),
 			"size": self.size,
 			"num_files": self.num_files,
 			"headers": Counter([file.get_type() for file in self.files]),

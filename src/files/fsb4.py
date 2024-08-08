@@ -57,7 +57,7 @@ class Sample(BaseAudioFile):
 
 		self.length = self.sample_length / self.frequency
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def dump_data(self) -> Any:
 		return {
@@ -88,8 +88,7 @@ class FSB4(BaseArchiveFile):
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
 		self.num_samples = self._reader.read_int32()
@@ -102,15 +101,13 @@ class FSB4(BaseArchiveFile):
 		self.hash = self._reader.read_uint64()
 		self.guid = self._reader.read_chunk(16)
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def read_contents(self) -> None:
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-
-		self._reader.seek(self.offset + 48, 0)
+		reader_pos: int = self._reader.seek(self.offset + 48)
 
 		self.files = [None] * self.num_samples # type: ignore
 		for i in range(self.num_samples):
@@ -120,7 +117,7 @@ class FSB4(BaseArchiveFile):
 			self.files[i] = sample
 			# self._reader.seek(sample.compressed_length, 1)
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 		self._content_ready = True
 
 	def dump_data(self) -> dict[str, Any]:

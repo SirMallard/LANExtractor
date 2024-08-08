@@ -33,14 +33,14 @@ class Wad(Archive):
 			entry: Entry = Entry(hash, offset, size)
 			self.entries[i] = entry
 
-		self._reader.seek(name_table_offset, 0)
+		self._reader.seek(name_table_offset)
 		self._reader.buffer_chunk(self.num_files * 56)
 		
 		for i in range(self.num_files):
 			name: str = self._reader.read_sized_string(BinaryReader.UINT16)
 			self.entries[i].name = name
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def read_file_headers(self) -> None:
 		if not self._open or self._reader == None:

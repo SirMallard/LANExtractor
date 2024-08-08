@@ -21,9 +21,9 @@ class TRM(BaseFile):
 	type: Format = Format.TRM
 	contains_sub_files: bool = True
 
-	version: int
-	size1: int
-	size2: int
+	block_info_size: int
+	block_offset: int
+	block_size: int
 	num_files: int
 
 	entries: list[Entry]
@@ -41,13 +41,12 @@ class TRM(BaseFile):
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
-		self.version = self._reader.read_uint32()
-		self.size1 = self._reader.read_uint32()
-		self.size2 = self._reader.read_uint32()
+		self.block_info_size = self._reader.read_uint32()
+		self.block_offset = self._reader.read_uint32()
+		self.block_size = self._reader.read_uint32()
 		self._reader.read_pad(4)
 		self.num_files = self._reader.read_uint32()
 
@@ -57,32 +56,35 @@ class TRM(BaseFile):
 			hash: int = self._reader.read_uint32()
 			size: int = self._reader.read_uint32()
 			offset: int = self._reader.read_uint32()
-			if offset % 2 == 1:
-				offset += self.size1
+			if offset % 0x10:
+				offset = self.block_offset + offset & 0xFFFFFFF0
 			self.uncompressed_size += size
 			entry: Entry = Entry(hash, offset, size)
 			self.entries[i] = entry
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def read_contents(self) -> None:
 		if not self._open or self._reader == None:
 			return
+
+		self.files = []
 		
 		reader_pos: int = self._reader.tell()
 
 		self.files = [None] * self.num_files # type: ignore
-
 		for i in range(self.num_files):
 			entry: Entry = self.entries[i]
 
-			file: BaseFile
-			if entry.offset % 2 == 1:
-				file = Archive.create_file(self._reader, self.archive, entry.hash, 4, entry.size)
-			else:
-				self._reader.seek(entry.offset, 0)
-				file = Archive.create_file(self._reader, self.archive, entry.hash, entry.offset, entry.size)
+			if entry.offset > self.size:
+				file: BaseFile = BaseFile(self.archive, entry.hash, entry.offset, entry.size)
+				file.header = "NULL"
+				self.files[i] = file
+				continue
 
+			file = Archive.create_file(self._reader, self.archive, entry.hash, entry.offset, entry.size)
+
+			file.parent_file = self
 			file.open(self._reader)
 			file.read_header()
 			file.read_contents()
@@ -90,7 +92,7 @@ class TRM(BaseFile):
 
 		# for entry in self.entries:
 		# 	if entry.hash == 962647487:
-		# 		self._reader.seek(entry.offset + 4, 0)
+		# 		self._reader.seek(entry.offset + 4)
 		# 		num_textures: int = self._reader.read_uint32()
 
 		# 		texture_data: list[dict[str, int]] = [None] * num_textures # type: ignore
@@ -108,21 +110,18 @@ class TRM(BaseFile):
 				
 		# 		self.file_data["UniqueTextureMain"] = texture_data
 
-		self._reader.seek(reader_pos, 0)
-
-	def get_sub_files(self) -> list['BaseFile']:
-		return self.files
+		self._reader.seek(reader_pos)
+		self._content_ready = True
 
 	def dump_data(self) -> dict[str, Any]:
 		if not self._content_ready:
 			return super().dump_data()
 		return super().dump_data() | {
-			"version": self.version,
-			"size1": self.size1,
-			"size2": self.size2,
+			"version": self.block_info_size,
+			"block_offset": self.block_offset,
+			"block_size": self.block_size,
 			"num_files": self.num_files,
 			"uncompressed_size": self.uncompressed_size,
-			"sizes": self.size1 + self.size2,
 
 			"entries": [{
 				"hash": entry.hash,

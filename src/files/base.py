@@ -59,12 +59,11 @@ class BaseFile:
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def read_contents(self) -> None:
 		...
@@ -92,27 +91,25 @@ class BaseFile:
 		if not self._open or self._reader == None:
 			return
 
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		path: Path = directory / self.name
 		path.parent.mkdir(parents = True, exist_ok = True)
 		path.write_bytes(self._reader.read_chunk(self.size))
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def export_file(self, directory: Path):
 		if not self._open or self._reader == None:
 			return
 
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		path: Path = (directory / self.name).with_suffix(Format.formatToExtension(self.type))
 		path.parent.mkdir(exist_ok = True)
 		path.write_bytes(self._reader.read_chunk(self.size))
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def get_attributes(self) -> list[str]:
 		return []

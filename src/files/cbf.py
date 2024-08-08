@@ -15,22 +15,20 @@ class CBF(BaseFile):
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
 		self.num_containers = self._reader.read_uint16()
 		self.containers = [None] * self.num_containers # type: ignore
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def read_contents(self) -> None:
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
+		reader_pos: int = self._reader.seek(self.offset + 4 + self._reader.UINT32)
 
-		self._reader.seek(self.offset + 4 + self._reader.UINT32, 0)
 		for i in range(self.num_containers):
 			name_len: int = self._reader.read_uint16()
 			name: str = self._reader.read_string(name_len)
@@ -49,7 +47,7 @@ class CBF(BaseFile):
 
 			self.containers[i] = container
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 		self._content_ready = True
 
 	def dump_data(self) -> dict[str, Any]:

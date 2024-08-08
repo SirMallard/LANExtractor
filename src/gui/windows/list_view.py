@@ -4,7 +4,7 @@ from gui.app_data import AppData
 def render_files(app_data: AppData):
 	flags: imgui.SelectableFlags = imgui.SelectableFlags_.allow_double_click.value | imgui.SelectableFlags_.span_all_columns.value | imgui.internal.SelectableFlagsPrivate_.no_pad_with_half_spacing.value
 
-	for folder in app_data.current_node.folders.values():
+	for _, folder in sorted(app_data.current_node.folders.items()):
 		imgui.table_next_row(imgui.TableRowFlags_.none.value, imgui.get_frame_height())
 
 		if imgui.table_set_column_index(0):
@@ -26,7 +26,7 @@ def render_files(app_data: AppData):
 			imgui.table_next_column()
 			imgui.text(", ".join(folder.attributes))
 
-	for file in app_data.current_node.files.values():
+	for _, file in sorted(app_data.current_node.files.items()):
 		imgui.table_next_row(imgui.TableRowFlags_.none.value, imgui.get_frame_height())
 
 		if imgui.table_set_column_index(0):

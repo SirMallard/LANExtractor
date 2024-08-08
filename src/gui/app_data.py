@@ -50,7 +50,6 @@ class FolderNode(Node):
 		self.files = {}
 		self.folders = {}
 
-
 	def add_file(self, file: 'FileNode') -> None:
 		self.files[file.name] = file
 

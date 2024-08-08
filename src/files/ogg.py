@@ -14,14 +14,13 @@ class OGG(BaseFile):
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
 		self.version = self._reader.read_uint8()
 		self.header_type = self._reader.read_uint8()
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def read_contents(self) -> None:
 		if not self._open or self._reader == None:
@@ -29,7 +28,7 @@ class OGG(BaseFile):
 		
 		reader_pos: int = self._reader.tell()
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 		self._content_ready = True
 
 	def dump_data(self) -> dict[str, Any]:

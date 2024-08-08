@@ -41,13 +41,20 @@ class BinaryReader():
 	def tell(self) -> int:
 		return self.file.tell()
 
-	def seek(self, offset: int, end: int) -> None:
+	def seek(self, offset: int, end: int = 0) -> int:
+		pos: int = self.tell()
 		self.file.seek(offset, end)
 		self.buffer.flush()
+		return pos
 
-	def read(self, format: str, length: int) -> Any:
+	def read(self, format: str, length: int, offset: int = -1) -> Any:
 		data: bytes
-		if self.buffer.getbuffer().nbytes >= length:
+		if offset >= 0:
+			self.buffer.flush()
+			pos: int = self.seek(offset)
+			data = self.buffer.read(length)
+			self.seek(pos)
+		elif self.buffer.getbuffer().nbytes >= length:
 			self.file.seek(length, 1)
 			data = self.buffer.read(length)
 		else:
@@ -56,35 +63,35 @@ class BinaryReader():
 		return unpack(f"{self.endian}{format}", data)[0]
 		
 
-	def read_uint8(self) -> int:
-		return self.read("B", self.UINT8)
+	def read_uint8(self, offset: int = -1) -> int:
+		return self.read("B", self.UINT8, offset)
 		
-	def read_int8(self) -> int:
-		return self.read("b", self.INT8)
+	def read_int8(self, offset: int = -1) -> int:
+		return self.read("b", self.INT8, offset)
 		
-	def read_uint16(self) -> int:
-		return self.read("H", self.UINT16)
+	def read_uint16(self, offset: int = -1) -> int:
+		return self.read("H", self.UINT16, offset)
 		
-	def read_int16(self) -> int:
-		return self.read("h", self.INT16)
+	def read_int16(self, offset: int = -1) -> int:
+		return self.read("h", self.INT16, offset)
 
-	def read_uint32(self) -> int:
-		return self.read("I", self.UINT32)
+	def read_uint32(self, offset: int = -1) -> int:
+		return self.read("I", self.UINT32, offset)
 		
-	def read_int32(self) -> int:
-		return self.read("i", self.INT32)
+	def read_int32(self, offset: int = -1) -> int:
+		return self.read("i", self.INT32, offset)
 		
-	def read_uint64(self) -> int:
-		return self.read("Q", self.UINT64)
+	def read_uint64(self, offset: int = -1) -> int:
+		return self.read("Q", self.UINT64, offset)
 		
-	def read_int64(self) -> int:
-		return self.read("q", self.INT64)
+	def read_int64(self, offset: int = -1) -> int:
+		return self.read("q", self.INT64, offset)
 
-	def read_float32(self) -> float:
-		return self.read("f", self.FLOAT)
+	def read_float32(self, offset: int = -1) -> float:
+		return self.read("f", self.FLOAT, offset)
 		
-	def read_float64(self) -> float:
-		return self.read("d", self.DOUBLE)
+	def read_float64(self, offset: int = -1) -> float:
+		return self.read("d", self.DOUBLE, offset)
 
 	def read_string(self, length: int) -> str:
 		s: bytes = self.read(f"{length}s", length)

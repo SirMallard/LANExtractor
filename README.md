@@ -182,6 +182,7 @@ vm_hlywd_001.trunk.pc
 - 2381493261
 
 ### PTM
-`Bone?`
-In most [`SGES`](#sge) files.
+`Bones, Collisions, Hierarchy`
+In most [`TRM`](#trm) files. Contains Havok file collision data with unknown header. Called `uber`?
 - https://forum.xen-tax.com/viewtopic.php@t=6623&start=195.html
+- https://reshax.com/topic/198-havok-middleware/

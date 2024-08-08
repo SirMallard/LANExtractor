@@ -5,8 +5,12 @@ from files.base import BaseFile
 class PTM(BaseFile):
 	type: Format = Format.PTM
 	version: int
-	header_size: int
-	num_files: int
+
+	pointer_offset: int
+
+	pointer_addresses: list[int]
+	pointers: list[int]
+	pointer_data_types: list[int]
 	
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
@@ -15,15 +19,47 @@ class PTM(BaseFile):
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.tell()
-		self._reader.seek(self.offset, 0)
+		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
-		self.version = self._reader.read_uint8()
-		self.header_size = self._reader.read_uint32()
-		self.num_files = self._reader.read_uint32()
+		self.version = self._reader.read_uint32()
+		self.pointer_offset = self._reader.read_uint32()
 
-		self._reader.seek(reader_pos, 0)
+		self.pointer_addresses = []
+		self.pointers = []
+		self.pointer_data_types = []
+
+		pointer_address: int = 0
+		data_type: int = 0
+
+		while False:
+			num_pointers: int = self._reader.read_uint16()
+
+			for _ in range(num_pointers):
+				value: int = self._reader.read_uint16()
+				if value & 0x8000:
+					data: int = self._reader.read_uint32()
+					data_shift: int = (data & 0x80000000) | (data & 0x80000000 >> 16)
+					pointer_address = data_shift ^ data
+				else:
+					pointer_address += 4 * value
+				
+				pointer: int = pointer_address + self.pointer_offset
+				self.pointer_addresses.append(pointer)
+				self.pointers.append(self._reader.read_uint32(pointer) + self.pointer_offset)
+				self.pointer_data_types.append(data_type)
+
+			block_end: int = self._reader.tell() + self._reader.tell() & 2
+
+			if block_end + 6 >= self.pointer_offset:
+				break
+
+			# print("Another block?")
+			break
+			# self._reader.read_pad(self._reader.tell() & 2)
+			# data_type = self._reader.read_uint32()					
+
+		self._reader.seek(reader_pos)
 
 	def read_contents(self) -> None:
 		if not self._open or self._reader == None:
@@ -31,7 +67,7 @@ class PTM(BaseFile):
 		
 		reader_pos: int = self._reader.tell()
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 		self._content_ready = True
 
 	def dump_data(self) -> dict[str, Any]:
@@ -39,6 +75,5 @@ class PTM(BaseFile):
 			return super().dump_data()
 		return super().dump_data() | {
 			"version": self.version,
-			"header_size": self.header_size,
-			"num_files": self.num_files
+			"pointer_offset": self.pointer_offset
 		}

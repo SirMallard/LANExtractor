@@ -51,7 +51,7 @@ class Big(Archive):
 			entry: Entry = BigEntry(hash, offset, size1, size2, size3)
 			self.entries[i] = entry
 
-		self._reader.seek(reader_pos, 0)
+		self._reader.seek(reader_pos)
 
 	def read_file_headers(self) -> None:
 		if not self._open or self._reader == None:

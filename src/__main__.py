@@ -1,50 +1,49 @@
+from pathlib import Path
 from archives.archive import Archive
 from archives.big import Big
 from archives.wad import Wad
 from binary_reader import BinaryReader
 from utils.formats import Format
 
-from os import listdir, makedirs
-from os.path import join, splitext, dirname
 from json import dump
 import pickle
 from collections import Counter
 
-SRC_DIRECTORY = "X:\\SteamLibrary\\steamapps\\common\\L.A.Noire\\final\\pc"
+SRC_DIRECTORY: Path = Path("X:\\SteamLibrary\\steamapps\\common\\L.A.Noire\\final\\pc")
 # SRC_DIRECTORY = "examples"
-OUT_DIRECTORY = "dump"
+OUT_DIRECTORY: Path = Path("dump")
 
-READ_GAME_FILES = True
-DUMP_JSON = True
-DUMP_ARCHIVE = False
-PICKLE_DATA = False
-LIMIT_FILE = True
+READ_GAME_FILES: bool = True
+DUMP_JSON: bool = True
+DUMP_ARCHIVE: bool = False
+PICKLE_DATA: bool = False
+LIMIT_ARCHIVE: bool = True
 
-ARCHIVE_NAMES = ["audio.big.pc"]
+ARCHIVE_NAMES: list[str] = ["vehicles.big.pc"]
 OUT_FILES = Format
 
 def read_game_files() -> dict[str, Archive]:
 	print("Reading game files")
 	archives: dict[str, Archive] = {}
 
-	for archive_name in listdir(SRC_DIRECTORY):
-		(full_type, extension) = splitext(archive_name)
-		(_, file_type) = splitext(full_type)
-		archive_path: str = join(SRC_DIRECTORY, archive_name)
+	for archive_path in SRC_DIRECTORY.iterdir():
+		archive_name: str = archive_path.name
+		extension: str = archive_path.suffix
+		file_type: str = Path(archive_path.stem).suffix
 
 		assert extension != "pc" "Can only read PC files."
 		assert file_type != ".big" or file_type != ".wad" "Can only read BIG and WAD files."
 
-		if LIMIT_FILE and archive_name not in ARCHIVE_NAMES:
+		if LIMIT_ARCHIVE and archive_name not in ARCHIVE_NAMES:
 			continue
 
 		print(f"\tReading: {archive_name}...", end="")
 
 		archive: Archive
 		if file_type == ".big":
-			archive = Big(archive_path, archive_name)
+			archive = Big(archive_name, Path(archive_name), archive_path)
 		else:
-			archive = Wad(archive_path, archive_name)
+			archive = Wad(archive_name, Path(archive_name), archive_path)
 
 		archive.open()
 		archive.read_header()
@@ -61,7 +60,7 @@ def read_pickle_file() -> dict[str, Archive]:
 	print("Reading pickle file...", end = "")
 	archives: dict[str, Archive] = {}
 	
-	with open(join(OUT_DIRECTORY, "archive_data.pickle"), "rb") as file:
+	with open(OUT_DIRECTORY / "archive_data.pickle", "rb") as file:
 		archives = pickle.load(file)
 
 	print("Done")
@@ -71,24 +70,23 @@ def dump_archives(archives: dict[str, Archive]):
 	print("Dumping archive files.")
 
 	for archive_name, archive in archives.items():
-		if LIMIT_FILE and archive_name not in ARCHIVE_NAMES:
+		if LIMIT_ARCHIVE and archive_name not in ARCHIVE_NAMES:
 			continue
 
 		print(f"\tDumping: {archive_name}...", end="")
 
 		archive.open()
-		for file_data in archive.get_files():
+		for file_data in archive.files:
 			if file_data.type not in OUT_FILES:
 				continue
 
 			files: list[tuple[int, int, str, BinaryReader]] = file_data.output_file()
 			for (offset, size, name, reader) in files:
-				out_path: str = join(archive.out_path, name)
-				makedirs(dirname(out_path), exist_ok = True)
-				
-				with open(out_path, "wb") as out_file:
-					reader.seek(offset, 0)
-					out_file.write(reader.read_chunk(size))
+				path: Path = Path(OUT_DIRECTORY, *archive.archive_name.replace("_", ".").split("."), f"{archive.name}.json", name)
+				path.parent.mkdir(parents = True, exist_ok = True)
+				reader.seek(offset, 0)
+				path.write_bytes(reader.read_chunk(size))
+
 		archive.close()
 
 		print("Done")
@@ -99,26 +97,27 @@ def dump_json_data(archives: dict[str, Archive]):
 	headers: list[str] = []
 
 	for archive_name, archive in archives.items():
-		if LIMIT_FILE and archive_name not in ARCHIVE_NAMES:
+		if LIMIT_ARCHIVE and archive_name not in ARCHIVE_NAMES:
 			continue
 
 		print(f"\tDumping: {archive_name}...", end="")
-		headers.extend([file.get_type() for file in archive.get_files()])
+		headers.extend([file.get_type() for file in archive.files])
 
-		makedirs(archive.out_path, exist_ok = True)
-		with open(archive.out_json_path, "w") as out_file:
+		path: Path = Path(OUT_DIRECTORY, *archive.archive_name.replace("_", ".").split("."), f"{archive.name}.json")
+		path.parent.mkdir(parents = True, exist_ok = True)
+		with open(path, "w") as out_file:
 			dump(archive.dump_data(), out_file, indent="\t")
 
 		print("Done")
 
-	with open(join(OUT_DIRECTORY, "headers.json"), "w") as file:
+	with open(OUT_DIRECTORY / "headers.json", "w") as file:
 		dump(Counter(headers), file, indent="\t", sort_keys=True)
 
 def write_pickle_file(archives: dict[str, Archive]):
 	print("Writing pickle file...", end = "")
 
-	makedirs(OUT_DIRECTORY, exist_ok = True)
-	with open(join(OUT_DIRECTORY, "archive_data.pickle"), "wb") as file:
+	OUT_DIRECTORY.mkdir(parents = True, exist_ok = True)
+	with open(OUT_DIRECTORY / "archive_data.pickle", "wb") as file:
 		pickle.dump(archives, file)
 
 	print("Done")
@@ -140,4 +139,4 @@ if __name__ == "__main__":
 	gui = Gui()
 	gui.run()
 
-	# main()
+	# main() 
