@@ -23,6 +23,7 @@ class Format(Enum):
 	TRLA = 15
 	MP3 = 16
 	RNM = 17
+	WAV = 18
 
 	@staticmethod
 	def headerToFormat(header: str) -> Enum:
@@ -93,6 +94,9 @@ class Format(Enum):
 			case Format.MP3:
 				from files.mp3 import MP3
 				return MP3
+			case Format.WAV:
+				from files.base import BaseAudioFile
+				return BaseAudioFile
 			case _:
 				from files.base import BaseFile
 				return BaseFile
@@ -101,37 +105,39 @@ class Format(Enum):
 	def formatToExtension(format: Enum) -> str:
 		match format:
 			case Format.SGES:
-				return "sges"
+				return ".sges"
 			case Format.FSB4:
-				return "mp3"
+				return ".mp3"
 			case Format.BIN:
-				return "bin"
+				return ".bin"
 			case Format.TRM:
-				return "trunk.pack"
+				return ".trunk.pack"
 			case Format.OGG:
-				return "ogv"
+				return ".ogv"
 			case Format.BINK:
-				return "bik"
+				return ".bik"
 			case Format.FNT:
-				return "fnt"
+				return ".fnt"
 			case Format.DDS:
-				return "dds"
+				return ".dds"
 			case Format.ATB:
-				return "atb"
+				return ".atb"
 			case Format.FEV1:
-				return "fev"
+				return ".fev"
 			case Format.CBF1:
-				return "contents"
+				return ".contents"
 			case Format.PTM:
-				return "pack"
+				return ".pack"
 			case Format.TRLA:
-				return "ids"
+				return ".ids"
 			case Format.MP3:
-				return "mp3"
+				return ".mp3"
 			case Format.RNM:
-				return "roadnavdata"
+				return ".roadnavdata"
+			case Format.WAV:
+				return ".wav"
 			case _:
-				return "unknown"
+				return ".unknown"
 
 def format_file_size(num: float):
     for unit in ("", "K", "M", "G", "T", "P", "E", "Z"):

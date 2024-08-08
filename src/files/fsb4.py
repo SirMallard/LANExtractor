@@ -34,7 +34,7 @@ class Sample(BaseAudioFile):
 		reader_pos: int = self._reader.tell()
 
 		self.header_len = self._reader.read_uint16()
-		self.name = self._reader.read_string(30).rstrip("\x00")
+		self.name = self._reader.read_string(30).rstrip("\x00") + ".wav" # not always present so a helpful addition
 
 		self.sample_length = self._reader.read_uint32()
 		self.compressed_length = self._reader.read_uint32()

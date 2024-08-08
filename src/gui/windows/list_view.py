@@ -38,6 +38,17 @@ def render_files(app_data: AppData):
 					app_data.open_file(file)
 				else:
 					app_data.set_selected_node(file if selected else None)
+			if imgui.begin_popup_context_item(None, imgui.PopupFlags_.mouse_button_right.value):
+				app_data.set_selected_node(file)
+				imgui.menu_item("Open", "", False)
+				imgui.separator()
+				if imgui.menu_item("Export file", "Ctrl+E", False)[0]:
+					app_data.export_file(file)
+				if imgui.menu_item("Export raw file", "Ctrl+Shift+E", False)[0]:
+					app_data.export_raw_file(file)
+				imgui.separator()
+				imgui.menu_item("Copy", "Ctrl+C", False)
+				imgui.end_popup()
 
 			imgui.table_next_column()
 			imgui.text(file.type)

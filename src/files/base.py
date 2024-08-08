@@ -37,7 +37,7 @@ class BaseFile:
 		self._reader = None
 		self._content_ready = False
 
-		self.path = Path(FILE_NAME_HASHES.get(str(self.hash), f"unknown/{hex(self.hash)}.{Format.formatToExtension(self.type)}"))
+		self.path = Path(FILE_NAME_HASHES.get(str(self.hash), f"unknown/{hex(self.hash)}{Format.formatToExtension(self.type)}"))
 		self.name = self.path.name
 		self.full_path = self.archive.full_path / self.path
 
@@ -88,6 +88,32 @@ class BaseFile:
 		
 		return [(self.offset, self.size, self.get_full_name(), self._reader)]
 
+	def export_raw_file(self, directory: Path):
+		if not self._open or self._reader == None:
+			return
+
+		reader_pos: int = self._reader.tell()
+		self._reader.seek(self.offset, 0)
+
+		path: Path = directory / self.name
+		path.parent.mkdir(parents = True, exist_ok = True)
+		path.write_bytes(self._reader.read_chunk(self.size))
+
+		self._reader.seek(reader_pos, 0)
+
+	def export_file(self, directory: Path):
+		if not self._open or self._reader == None:
+			return
+
+		reader_pos: int = self._reader.tell()
+		self._reader.seek(self.offset, 0)
+
+		path: Path = (directory / self.name).with_suffix(Format.formatToExtension(self.type))
+		path.parent.mkdir(exist_ok = True)
+		path.write_bytes(self._reader.read_chunk(self.size))
+
+		self._reader.seek(reader_pos, 0)
+
 	def get_attributes(self) -> list[str]:
 		return []
 
@@ -112,10 +138,14 @@ class BaseArchiveFile(BaseFile):
 	def scan_file(self):
 		pass
 
-	def getfiles(self) -> list[BaseFile]:
+	def get_files(self) -> list[BaseFile]:
 		if not self._content_ready:
 			return []
 		return self.files
+
+	def export_file(self, directory: Path):
+		for file in self.files:
+			file.export_raw_file((directory / self.name).with_suffix(""))
 
 	def close(self) -> None:
 		if self._content_ready:
@@ -124,6 +154,8 @@ class BaseArchiveFile(BaseFile):
 		super().close()
 
 class BaseAudioFile(BaseFile):
+	type: Format = Format.WAV
+
 	length: float
 	sample_length: int
 	frequency: int

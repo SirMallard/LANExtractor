@@ -4,6 +4,7 @@ entries/
 segments/
 ghidra/
 typings/
+export/
 
 # Game files
 *.sges

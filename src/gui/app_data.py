@@ -45,7 +45,7 @@ class FolderNode(Node):
 		super().__init__(name, path, full_path)
 
 		self.is_archive = False
-		self.is_game_file = False
+		self.is_game_archive = False
 
 		self.files = {}
 		self.folders = {}
@@ -80,21 +80,18 @@ class FolderNode(Node):
 		return f"{len(self.files) + len(self.folders)} Items"
 
 class FileNode(Node):
-	name: str
-	path: Path
-	full_path: Path
-	
 	parent: FolderNode
 
 	file: BaseFile | None
 	is_game_file: bool
 
+	type: str = "File"
+
 	def __init__(self, name: str, path: Path, full_path: Path) -> None:
 		super().__init__(name, path, full_path)
 
+		self.file = None
 		self.is_game_file = False
-
-		self.type = "File"
 
 class Tools:
 	hashed_string: int = 0
@@ -265,3 +262,21 @@ class AppData:
 					
 					window = action(file, lambda : self.open_windows.remove(window))
 					self.open_windows.append(window)
+
+	def export_raw_file(self, file_node: FileNode):
+		if file := file_node.file:
+			file.archive.open()
+			file.archive.open_file(file)
+			file.export_raw_file(Path("export"))
+			file.close()
+			file.archive.close()
+
+	def export_file(self, file_node: FileNode):
+		if file := file_node.file:
+			file.archive.open()
+			file.archive.open_file(file)
+			file.read_header()
+			file.read_contents()
+			file.export_file(Path("export"))
+			file.close()
+			file.archive.close()

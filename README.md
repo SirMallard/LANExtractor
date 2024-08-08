@@ -154,6 +154,33 @@ Only found in [`out.wad.pc`](#wad), presumably the rest are compressed in the [`
 `Models`
 Found throughout the files, mostly in [`SGES`](#sges) files as compressed, but sometimes standalone, which contains model data including [`PTM`](#ptm) files which are possibly bones?
 
+Vehicles:
+- UniqueTextureMain
+- HighLodGraphicsMain
+- MidLodGraphicsMain
+- LowLodGraphicsMain
+- UniqueTextureVRAM
+- HighLodGraphicsVRAM
+- MidLodGraphicsVRAM
+- LowLodGraphicsVRAM
+- Collision
+- Hierarchy
+
+notebook_01.trunk.pc:
+- GraphicsMain
+- UniqueTextureMain
+- GraphicsVRAM
+- UniqueTextureVRAM
+- BaseSkeletons
+- 2381493261
+
+vm_hlywd_001.trunk.pc
+- GraphicsMain
+- UniqueTextureMain
+- GraphicsVRAM
+- UniqueTextureVRAM
+- 2381493261
+
 ### PTM
 `Bone?`
 In most [`SGES`](#sge) files.
