@@ -76,7 +76,7 @@ class FSB4(BaseArchiveFile):
 
 	version: int
 	flags: int
-	hash: int
+	container_hash: int
 	guid: Any
 
 	files: list[BaseAudioFile]
@@ -98,7 +98,7 @@ class FSB4(BaseArchiveFile):
 
 		self.version = self._reader.read_uint32()
 		self.flags = self._reader.read_uint32()
-		self.hash = self._reader.read_uint64()
+		self.container_hash = self._reader.read_uint64()
 		self.guid = self._reader.read_chunk(16)
 
 		self._reader.seek(reader_pos)

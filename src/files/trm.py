@@ -28,13 +28,13 @@ class TRM(BaseFile):
 
 	entries: list[Entry]
 	files: list[BaseFile]
-	uncompressed_size: int
+	content_size: int
 
 	file_data: dict[str, Any]
 	
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
-		self.uncompressed_size = 0
+		self.content_size = 0
 		self.file_data = {}
 
 	def read_header(self) -> None:
@@ -56,9 +56,9 @@ class TRM(BaseFile):
 			hash: int = self._reader.read_uint32()
 			size: int = self._reader.read_uint32()
 			offset: int = self._reader.read_uint32()
-			if offset % 0x10:
-				offset = self.block_offset + offset & 0xFFFFFFF0
-			self.uncompressed_size += size
+			# if offset % 0x10:
+			# 	offset = self.block_offset + offset & 0xFFFFFFF0
+			self.content_size += size
 			entry: Entry = Entry(hash, offset, size)
 			self.entries[i] = entry
 
@@ -72,8 +72,9 @@ class TRM(BaseFile):
 		
 		reader_pos: int = self._reader.tell()
 
-		self.files = [None] * self.num_files # type: ignore
+		self.files = [] # [None] * self.num_files # type: ignore
 		for i in range(self.num_files):
+			continue
 			entry: Entry = self.entries[i]
 
 			if entry.offset > self.size:
@@ -121,7 +122,7 @@ class TRM(BaseFile):
 			"block_offset": self.block_offset,
 			"block_size": self.block_size,
 			"num_files": self.num_files,
-			"uncompressed_size": self.uncompressed_size,
+			"content_size": self.content_size,
 
 			"entries": [{
 				"hash": entry.hash,

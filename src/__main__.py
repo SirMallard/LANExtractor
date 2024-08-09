@@ -19,7 +19,7 @@ DUMP_ARCHIVE: bool = False
 PICKLE_DATA: bool = False
 LIMIT_ARCHIVE: bool = True
 
-ARCHIVE_NAMES: list[str] = ["vehicles.big.pc"]
+ARCHIVE_NAMES: list[str] = ["audio.bak.big.pc"]
 OUT_FILES = Format
 
 def read_game_files() -> dict[str, Archive]:
@@ -134,9 +134,9 @@ def main():
 
 
 if __name__ == "__main__":
-	from gui import Gui
+	# from gui import Gui
 
-	gui = Gui()
-	gui.run()
+	# gui = Gui()
+	# gui.run()
 
-	# main() 
+	main() 
