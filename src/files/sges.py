@@ -1,13 +1,15 @@
 from io import BufferedIOBase, BytesIO
 from typing import Any
 from zlib import decompress
+
 from archives.archive import Archive
 from utils.formats import Format
 from binary_reader import BinaryReader
 from files.base import BaseArchiveFile, BaseFile
 
-def align(x: int, a: int) -> int:
-	return (x + (a - 1)) & ~(a - 1)
+# Rounds up to the nearest block, usually 16
+def align(offset: int, block: int) -> int:
+	return (offset + (block - 1)) & ~(block - 1)
 
 class Chunk():
 	offset: int
@@ -30,15 +32,11 @@ class SGES(BaseArchiveFile):
 	size1: int
 	size2: int
 	size3: int
-	version: int
 	num_chunks: int
-	u0: int
-	u1: int
-	u2: int
-	u3: int
+	num_objects: int
 	data_offset: int
-	uobjects: list[int]
 	chunks: list[Chunk]
+	objects: list[int]
 	compressed_size: int = 0
 	uncompressed_size: int = 0
 
@@ -55,14 +53,11 @@ class SGES(BaseArchiveFile):
 		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
-		self.version = self._reader.read_uint16()
+		assert self._reader.read_uint16() == 7, "Version should be 7, not."
 		self.num_chunks = self._reader.read_uint16()
-		self.u0 = self._reader.read_uint8()
-		self.u1 = self._reader.read_uint8()
-		self.u2 = self._reader.read_uint8()
-		self.u3 = self._reader.read_uint8()
+		self.num_objects = self._reader.read_uint32()
 
-		self.data_offset = align(self.offset + 12 + (4 * self.u0) + (2 * self._reader.UINT16 * self.num_chunks), 16)
+		self.data_offset = align(self.offset + 12 + (4 * self.num_chunks), 16)
 
 		self._reader.seek(reader_pos)
 
@@ -72,12 +67,13 @@ class SGES(BaseArchiveFile):
 		
 		reader_pos: int = self._reader.seek(self.offset + 4 + (2 * self._reader.UINT16) + (4 * self._reader.UINT8))
 		
-		self.uobjects = [self._reader.read_uint32() for _ in range(self.u0)]
+		self.objects = [self._reader.read_uint32() for _ in range(self.num_objects)]
 		
 		self.chunks = [None] * self.num_chunks # type: ignore
 		for i in range(self.num_chunks):
 			size: int = self._reader.read_uint16()
 			flags: int = self._reader.read_uint8()
+			assert flags == 0x00 or flags == 0x10 or flags == 0x11, f"Flags should be 0x00, 0x10 or 0x11, not {flags}."
 			size_coeff: int = self._reader.read_uint8()
 
 			chunk: Chunk = Chunk(self.data_offset, size, size_coeff, flags)
@@ -122,23 +118,18 @@ class SGES(BaseArchiveFile):
 		if not self._content_ready:
 			return super().dump_data()
 		return super().dump_data() | {
-			"version": self.version,
-			"num_chunks": self.num_chunks,
-			"u0": self.u0,
-			"u1": self.u1,
-			"u2": self.u2,
-			"u3": self.u3,
-			"data_offset": self.data_offset,
-			"uobjects": self.uobjects,
+			# "data_offset": self.data_offset,
 			"size1": self.size1,
 			"size2": self.size2,
 			"size3": self.size3,
+			"compressed": self.compressed_size,
+			"num_chunks": self.num_chunks,
 			"chunks": [{
 				"offset": chunk.offset,
 				"size": chunk.size,
 				"flags": hex(chunk.flags),
-				"compressed": bool(chunk.flags & 0x10),
-				"size_coeff": chunk.size_coeff,
+				# "compressed": bool(chunk.flags & 0x10),
+				# "size_coeff": chunk.size_coeff,
 			} for chunk in self.chunks],
 			"file": self.files[0].dump_data()
 		}

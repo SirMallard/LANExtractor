@@ -7,7 +7,6 @@ from utils.formats import Format
 
 from json import dump
 import pickle
-from collections import Counter
 
 SRC_DIRECTORY: Path = Path("X:\\SteamLibrary\\steamapps\\common\\L.A.Noire\\final\\pc")
 # SRC_DIRECTORY = "examples"
@@ -19,7 +18,7 @@ DUMP_ARCHIVE: bool = False
 PICKLE_DATA: bool = False
 LIMIT_ARCHIVE: bool = True
 
-ARCHIVE_NAMES: list[str] = ["audio.bak.big.pc"]
+ARCHIVE_NAMES: list[str] = ["vehicles.big.pc"] # ["characters.big.pc", "dlc.dlc5.big.pc", "dlc.dlc6.big.pc", "dlc.dlc8.big.pc", "out.wad.pc", "props.big.pc", "props.high.big.pc", "ui_streamed_textures.big.pc", "vehicles.big.pc"]
 OUT_FILES = Format
 
 def read_game_files() -> dict[str, Archive]:
@@ -94,14 +93,22 @@ def dump_archives(archives: dict[str, Archive]):
 def dump_json_data(archives: dict[str, Archive]):
 	print("Dumping JSON data.")
 
-	headers: list[str] = []
+	# headers: list[str] = []
+	# trms: dict[str, dict[str, Any]] = {}
 
 	for archive_name, archive in archives.items():
 		if LIMIT_ARCHIVE and archive_name not in ARCHIVE_NAMES:
 			continue
 
+		# for file in archive.files:
+		# 	if isinstance(file, TRM):
+		# 		trms[str(file.path)] = file.dump_data()
+		# 	elif isinstance(file, SGES) and isinstance(file.files[0], TRM):
+		# 		trms[str(file.files[0].path)] = file.files[0].dump_data()
+
+
 		print(f"\tDumping: {archive_name}...", end="")
-		headers.extend([file.get_type() for file in archive.files])
+		# headers.extend([file.get_type() for file in archive.files])
 
 		path: Path = Path(OUT_DIRECTORY, *archive.archive_name.replace("_", ".").split("."), f"{archive.name}.json")
 		path.parent.mkdir(parents = True, exist_ok = True)
@@ -110,8 +117,11 @@ def dump_json_data(archives: dict[str, Archive]):
 
 		print("Done")
 
-	with open(OUT_DIRECTORY / "headers.json", "w") as file:
-		dump(Counter(headers), file, indent="\t", sort_keys=True)
+	# with open(OUT_DIRECTORY / "headers.json", "w") as file:
+	# 	dump(Counter(headers), file, indent="\t", sort_keys=True)
+
+	# with open(OUT_DIRECTORY / "trm#.json", "w") as file:
+	# 	dump(dict(sorted(trms.items())), file, indent = "\t")
 
 def write_pickle_file(archives: dict[str, Archive]):
 	print("Writing pickle file...", end = "")
@@ -134,9 +144,9 @@ def main():
 
 
 if __name__ == "__main__":
-	# from gui import Gui
+	from gui import Gui
 
-	# gui = Gui()
-	# gui.run()
+	gui = Gui()
+	gui.run()
 
-	main() 
+	# main() 

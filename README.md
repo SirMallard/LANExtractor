@@ -127,6 +127,23 @@ Most of the video tracks do not contain an audio track, instead relying on anoth
 `Segmented Compressed File - Models`
 The general format for all models and images. Not much too say apart from that it seems proprietary and therefore needs more work to understand the structure. A majority of the game files are this, which presumably includes world models and images, LODs, vehicles, characters, animation data and others.
 
+```C++
+struct {
+	uint16_t size; // += 0x10000 * size_coefficient
+	uint8_t flags; // either 0x00, 0x10 or 0x11 - 0x01 is first chunk, 0x10 is compressed
+	uint8_t size_coefficient;
+} sges_chunk;
+
+struct {
+	char magic[4];
+	uint16_t version; // always 7
+	uint16_t num_chunks; // 1 chunk if not compressed
+	uint32_t unk; // always 0
+
+	sges_chunk chunks[num_chunks];
+} sges_header;
+```
+
 ### FSB4
 `FMOD Sample Bank - Audio`
 FSB files are proprietary but the information to read them is available. Each file can contain one or more audio tracks, which can be taken out individually and then opened using VLC.
@@ -151,8 +168,56 @@ Only found in [`out.wad.pc`](#wad), presumably the rest are compressed in the [`
 - https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide#dds-file-layout
 
 ### TRM
-`Models`
+`Trunk ? Model`
 Found throughout the files, mostly in [`SGES`](#sges) files as compressed, but sometimes standalone, which contains model data including [`PTM`](#ptm) files which are possibly bones?
+
+```C++
+struct {
+	uint32_t hash;
+	uint32_t size;
+	uint32_t offset;
+} trm_entry;
+
+struct {
+	char magic[4];
+	uint32_t version; // always 1
+	uint32_t size1; // PTM and data files
+	uint32_t size2; // VRAM files - sometimes larger than the file size
+	uint32_t null; // always 0
+
+	uint32_t num_files;
+	trm_entry entries[num_files];
+} trm_header;
+```
+
+Files:
+- `1181384334` = `LowLODCollision`
+- `3890050462` = `LowLODHierarchy`
+- `2672145205` = `LowLodGraphicsMain`
+- `1475192112` = `LowLodGraphicsVRAM`
+- `416037040` = `MidLodGraphicsMain`
+- `3496226485` = `MidLodGraphicsVRAM`
+- `710690163` = `HighLodGraphicsMain`
+- `3807662966` = `HighLodGraphicsVRAM`
+- `1188501517` = `TextureMain`
+- `2390691336` = `TextureVRAM`
+- `962647487` = `UniqueTextureMain`
+- `4056466362` = `UniqueTextureVRAM`
+- `4236854250` = `GraphicsMain`
+- `874599919` = `GraphicsVRAM`
+- `388805088` = `BreakableGraphicsMain`
+- `3750012901` = `BreakableGraphicsVRAM`
+- `1540170686` = `Collision`
+- `2306622947` = `BreakableCollision`
+- `4202309806` = `Hierarchy`
+- `684412659` = `BreakableHierarchy`
+- `3228098164` = `Skeletons`
+- `2755868908` = `BaseSkeletons`
+- `2370995420` = `animation`
+- `3087893650` = `AnimationSet`
+- `704566783` = `SDKAnimSet`
+- `586247102` = `cloth`
+- `2381493261` = `?` - unknown but appears often
 
 Vehicles:
 - UniqueTextureMain
@@ -182,7 +247,7 @@ vm_hlywd_001.trunk.pc
 - 2381493261
 
 ### PTM
-`Bones, Collisions, Hierarchy`
+`PolyType Model?` ` Bones, Collisions, Hierarchy`
 In most [`TRM`](#trm) files. Contains Havok file collision data with unknown header. Called `uber`?
 - https://forum.xen-tax.com/viewtopic.php@t=6623&start=195.html
 - https://reshax.com/topic/198-havok-middleware/
