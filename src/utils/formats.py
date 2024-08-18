@@ -24,6 +24,7 @@ class Format(Enum):
 	MP3 = 16
 	RNM = 17
 	WAV = 18
+	VRAM = 19
 
 	@staticmethod
 	def headerToFormat(header: str) -> Enum:
@@ -58,6 +59,8 @@ class Format(Enum):
 				return Format.MP3
 			case "RNM#":
 				return Format.RNM
+			case "VRAM":
+				return Format.VRAM
 			case _:
 				return Format.UNKNOWN
 
@@ -97,6 +100,9 @@ class Format(Enum):
 			case Format.WAV:
 				from files.base import BaseAudioFile
 				return BaseAudioFile
+			case Format.VRAM:
+				from files.vram import VRAM
+				return VRAM
 			case _:
 				from files.base import BaseFile
 				return BaseFile
@@ -136,6 +142,8 @@ class Format(Enum):
 				return ".roadnavdata"
 			case Format.WAV:
 				return ".wav"
+			case Format.VRAM:
+				return ".vram"
 			case _:
 				return ".unknown"
 

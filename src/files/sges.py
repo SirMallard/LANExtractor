@@ -40,11 +40,15 @@ class SGES(BaseArchiveFile):
 	compressed_size: int = 0
 	uncompressed_size: int = 0
 
-	_file_file: BufferedIOBase
-	_file_reader: BinaryReader
+	contents: BufferedIOBase
+	_content_reader: BinaryReader
 	
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
+
+		self.size1 = 0
+		self.size2 = 0
+		self.size3 = 0
 
 	def read_header(self) -> None:
 		if not self._open or self._reader == None:
@@ -57,7 +61,7 @@ class SGES(BaseArchiveFile):
 		self.num_chunks = self._reader.read_uint16()
 		self.num_objects = self._reader.read_uint32()
 
-		self.data_offset = align(self.offset + 12 + (4 * self.num_chunks), 16)
+		self.data_offset = align(self.offset + 12 + (4 * self.num_objects) + (4 * self.num_chunks), 16)
 
 		self._reader.seek(reader_pos)
 
@@ -65,7 +69,7 @@ class SGES(BaseArchiveFile):
 		if not self._open or self._reader == None:
 			return
 		
-		reader_pos: int = self._reader.seek(self.offset + 4 + (2 * self._reader.UINT16) + (4 * self._reader.UINT8))
+		reader_pos: int = self._reader.seek(self.offset + 12)
 		
 		self.objects = [self._reader.read_uint32() for _ in range(self.num_objects)]
 		
@@ -80,24 +84,57 @@ class SGES(BaseArchiveFile):
 			self.data_offset += chunk.size
 			self.chunks[i] = chunk
 
-		self._file_file = BytesIO()
+		self.contents = BytesIO()
 
 		for i in range(self.num_chunks):
 			chunk = self.chunks[i]
 			self._reader.seek(chunk.offset)
 			
 			if chunk.flags & 0x10:
-				self._file_file.write(decompress(self._reader.read_chunk(chunk.size), -15))
+				self.contents.write(decompress(self._reader.read_chunk(chunk.size), -15))
 				self.compressed_size += chunk.size
 			else:
-				self._file_file.write(self._reader.read_chunk(self.size1))
+				self.contents.write(self._reader.read_chunk(self.size1))
+				self.compressed_size += self.size1
 
-		self.uncompressed_size = self._file_file.__sizeof__()
+		# there is too much extra space, so we look for another sges file
+		calculated_size: int = align(12 + (4 * self.num_objects) + (4 * self.num_chunks), 16) + self.compressed_size
+		if self.size - calculated_size > 64:
+			offset: int = align(self.chunks[-1].offset + self.chunks[-1].size, 16)
+			remaining: int = align(self.offset + self.size, 16) - offset
+			self._reader.seek(offset)
 
-		self._file_reader = BinaryReader(self._file_file)
-		file: BaseFile = Archive.create_file(self._file_reader, self, self.hash, 0, self.uncompressed_size)
+			other: int = -1
+			for _ in range(remaining // 16):
+				if self._reader.read_bytes(4) == b"sges":
+					other = self._reader.tell() - 4
+					break
+
+				self._reader.seek(12, 1)
+
+			assert other > 0, "Should have found another `sges` file."
+			extra_file = SGES(self.archive, 0, other, self.size - (other - self.offset))
+			extra_file.parent_file = self
+			extra_file.open(self._reader)
+			extra_file.read_header()
+			extra_file.read_contents()
+
+			self.num_objects += extra_file.num_objects
+			self.objects.extend(extra_file.objects)
+			self.num_chunks += extra_file.num_chunks
+			self.chunks.extend(extra_file.chunks)
+			self.contents.write(extra_file.contents.read())
+			self.compressed_size += extra_file.compressed_size
+			
+			extra_file.close()
+		
+		self.uncompressed_size = self.contents.getbuffer().nbytes
+		self.contents.seek(0)
+
+		self._content_reader = BinaryReader(self.contents)
+		file: BaseFile = Archive.create_file(self._content_reader, self, self.hash, 0, self.uncompressed_size)
 		file.parent_file = self
-		file.open(self._file_reader)
+		file.open(self._content_reader)
 		file.read_header()
 		file.read_contents()
 
@@ -108,7 +145,7 @@ class SGES(BaseArchiveFile):
 
 	def close(self) -> None:
 		if self._content_ready:
-			self._file_file.close()
+			self.contents.close()
 		super().close()
 
 	def get_attributes(self) -> list[str]:
@@ -118,18 +155,17 @@ class SGES(BaseArchiveFile):
 		if not self._content_ready:
 			return super().dump_data()
 		return super().dump_data() | {
-			# "data_offset": self.data_offset,
 			"size1": self.size1,
 			"size2": self.size2,
 			"size3": self.size3,
+			"num_objects": self.num_objects,
+			"objects": [f"{object:08x}" for object in self.objects],
 			"compressed": self.compressed_size,
 			"num_chunks": self.num_chunks,
 			"chunks": [{
 				"offset": chunk.offset,
 				"size": chunk.size,
 				"flags": hex(chunk.flags),
-				# "compressed": bool(chunk.flags & 0x10),
-				# "size_coeff": chunk.size_coeff,
 			} for chunk in self.chunks],
-			"file": self.files[0].dump_data()
+			"file": self.files[0].dump_data(),
 		}

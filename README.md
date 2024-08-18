@@ -127,10 +127,13 @@ Most of the video tracks do not contain an audio track, instead relying on anoth
 `Segmented Compressed File - Models`
 The general format for all models and images. Not much too say apart from that it seems proprietary and therefore needs more work to understand the structure. A majority of the game files are this, which presumably includes world models and images, LODs, vehicles, characters, animation data and others.
 
+Some SGES files will contain more within the main size, but there is not a known way to find the 
+offset without bruteforcing to finding the header.
+
 ```C++
 struct {
 	uint16_t size; // += 0x10000 * size_coefficient
-	uint8_t flags; // either 0x00, 0x10 or 0x11 - 0x01 is first chunk, 0x10 is compressed
+	uint8_t flags; // either 0x00, 0x10 or 0x11 - 0x01 is post-chunk, 0x10 is compressed
 	uint8_t size_coefficient;
 } sges_chunk;
 

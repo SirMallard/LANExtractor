@@ -1,4 +1,5 @@
 from archives.archive import Archive
+from files.vram import VRAM
 from utils.dictionaries import FILE_NAME_HASHES
 from utils.formats import Format
 from files.base import BaseFile
@@ -24,9 +25,6 @@ class TRM(BaseFile):
 	size1: int
 	size2: int
 	num_files: int
-
-	block1_size: int
-	block2_size: int
 
 	entries: list[Entry]
 	files: list[BaseFile]
@@ -69,38 +67,75 @@ class TRM(BaseFile):
 	def read_contents(self) -> None:
 		if not self._open or self._reader == None:
 			return
-
-		self.files = []
 		
 		reader_pos: int = self._reader.tell()
 
-		self.block1_size = 0
-		self.block2_size = 0
-
-		self.files = [] # [None] * self.num_files # type: ignore
+		self.files = [None] * self.num_files # type: ignore
 		for i in range(self.num_files):
 			entry: Entry = self.entries[i]
 
 			if entry.offset % 16:
-				self.block2_size += entry.size
 				assert entry.offset % 16 == 1, "Offset should be 1."
-			else:
-				self.block1_size += entry.size
-			continue
 
-			if entry.offset > self.size:
-				file: BaseFile = BaseFile(self.archive, entry.hash, entry.offset, entry.size)
-				file.header = "NULL"
-				self.files[i] = file
-				continue
+			file: BaseFile
+			match entry.hash:
+				# case 1181384334: #LowLODCollision
+				# case 3890050462: #LowLODHierarchy
 
-			file = Archive.create_file(self._reader, self.archive, entry.hash, entry.offset, entry.size)
+				# case 2672145205: #LowLodGraphicsMain
+				case 1475192112: #LowLodGraphicsVRAM
+					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
+
+				# case 416037040: #MidLodGraphicsMain
+				case 3496226485: #MidLodGraphicsVRAM
+					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
+				
+				# case 710690163: #HighLodGraphicsMain
+				case 3807662966: #HighLodGraphicsVRAM
+					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
+				
+				# case 1188501517: #TextureMain
+				case 2390691336: #TextureVRAM
+					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
+				
+				# case 962647487: #UniqueTextureMain
+				case 4056466362: #UniqueTextureVRAM
+					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
+				
+				# case 4236854250: #GraphicsMain
+				case 874599919: #GraphicsVRAM
+					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
+				
+				# case 388805088: #BreakableGraphicsMain
+				case 3750012901: #BreakableGraphicsVRAM
+					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
+				
+				# case 1540170686: #Collision
+				# case 2306622947: #BreakableCollision
+				
+				# case 4202309806: #Hierarchy
+				# case 684412659: #BreakableHierarchy
+				
+				# case 3228098164: #Skeletons
+				# case 2755868908: #BaseSkeletons
+				
+				# case 2370995420: #animation
+				# case 3087893650: #AnimationSet
+				# case 704566783: #SDKAnimSet
+				
+				# case 586247102: #cloth
+				# case 2381493261: #UNKNOWN
+				case _:
+					file = Archive.create_file(self._reader, self.archive, entry.hash, entry.offset, entry.size)
+
+			
 
 			file.parent_file = self
 			file.open(self._reader)
 			file.read_header()
 			file.read_contents()
 			self.files[i] = file
+			self.file_data[entry.name] = file
 
 		# for entry in self.entries:
 		# 	if entry.hash == 962647487:
@@ -131,11 +166,7 @@ class TRM(BaseFile):
 		return super().dump_data() | {
 			"size1": self.size1,
 			"size2": self.size2,
-			"combined": self.size1 + self.size2,
 			"num_files": self.num_files,
-
-			# "block1_size": self.block1_size,
-			# "block2_size": self.block2_size,
 
 			"entries": [{
 				"hash": entry.hash,

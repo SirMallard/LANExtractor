@@ -35,7 +35,7 @@ class Big(Archive):
 		self._reader.seek(-table_offset, 2)
 		self._reader.buffer_chunk(table_offset)
 		
-		_version: str = self._reader.read_string(4)
+		assert self._reader.read_uint32() == 3, "Version should be 3."
 		
 		self.num_files = self._reader.read_uint32()
 

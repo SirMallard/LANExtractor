@@ -51,6 +51,10 @@ class Archive:
 		self._file = None
 		self._reader = None
 
+		self.entries = []
+		self.num_files = 0
+		self.files = []
+
 		self.size = getsize(self.full_path)
 
 	def open(self):
@@ -103,6 +107,18 @@ class Archive:
 		
 		file.open(self._reader)
 
+	def dump_data(self) -> Any:
+		return {
+			"name": self.name,
+			"archive_name": self.archive_name,
+			"path": str(self.path),
+			"full_path": str(self.full_path),
+			"size": self.size,
+			"num_files": self.num_files,
+			"headers": Counter([file.get_type() for file in self.files]),
+			"files": [file.dump_data() for file in self.files]
+		}
+
 	@staticmethod
 	def create_file(reader: BinaryReader, archive: Any, hash: int, offset: int, size: int) -> BaseFile:
 		file = BaseFile(archive, hash, offset, size)
@@ -117,15 +133,3 @@ class Archive:
 		newFile: BaseFile = newClass(*args)
 
 		return newFile
-
-	def dump_data(self) -> Any:
-		return {
-			"name": self.name,
-			"archive_name": self.archive_name,
-			"path": str(self.path),
-			"full_path": str(self.full_path),
-			"size": self.size,
-			"num_files": self.num_files,
-			"headers": Counter([file.get_type() for file in self.files]),
-			"files": [file.dump_data() for file in self.files]
-		}

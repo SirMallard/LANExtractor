@@ -85,7 +85,7 @@ class BaseFile:
 		if not self._open or self._reader == None:
 			return []
 		
-		return [(self.offset, self.size, self.get_full_name(), self._reader)]
+		return [(self.offset, self.size, str(self.path), self._reader)]
 
 	def export_raw_file(self, directory: Path):
 		if not self._open or self._reader == None:

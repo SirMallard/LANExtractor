@@ -3,7 +3,6 @@ from archives.archive import Archive
 from archives.big import Big
 from archives.wad import Wad
 from binary_reader import BinaryReader
-from utils.formats import Format
 
 from json import dump
 import pickle
@@ -19,7 +18,6 @@ PICKLE_DATA: bool = False
 LIMIT_ARCHIVE: bool = True
 
 ARCHIVE_NAMES: list[str] = ["vehicles.big.pc"] # ["characters.big.pc", "dlc.dlc5.big.pc", "dlc.dlc6.big.pc", "dlc.dlc8.big.pc", "out.wad.pc", "props.big.pc", "props.high.big.pc", "ui_streamed_textures.big.pc", "vehicles.big.pc"]
-OUT_FILES = Format
 
 def read_game_files() -> dict[str, Archive]:
 	print("Reading game files")
@@ -75,13 +73,12 @@ def dump_archives(archives: dict[str, Archive]):
 		print(f"\tDumping: {archive_name}...", end="")
 
 		archive.open()
+		archive.read_file_headers()
+		archive.read_file_contents()
 		for file_data in archive.files:
-			if file_data.type not in OUT_FILES:
-				continue
-
 			files: list[tuple[int, int, str, BinaryReader]] = file_data.output_file()
 			for (offset, size, name, reader) in files:
-				path: Path = Path(OUT_DIRECTORY, *archive.archive_name.replace("_", ".").split("."), f"{archive.name}.json", name)
+				path: Path = Path(OUT_DIRECTORY, *archive.archive_name.replace("_", ".").split("."), "contents", name)
 				path.parent.mkdir(parents = True, exist_ok = True)
 				reader.seek(offset, 0)
 				path.write_bytes(reader.read_chunk(size))
@@ -142,11 +139,10 @@ def main():
 	if PICKLE_DATA:
 		write_pickle_file(archives)
 
-
 if __name__ == "__main__":
-	from gui import Gui
-
-	gui = Gui()
-	gui.run()
-
-	# main() 
+	if False:
+		from gui import Gui
+		gui = Gui()
+		gui.run()
+	else:
+		main()
