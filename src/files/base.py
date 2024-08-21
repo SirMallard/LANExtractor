@@ -1,3 +1,4 @@
+from json import dump
 from pathlib import Path
 from utils.dictionaries import FILE_NAME_HASHES
 from utils.formats import Format
@@ -41,14 +42,14 @@ class BaseFile:
 		self.name = self.path.name
 		self.full_path = self.archive.full_path / self.path
 
-	def open(self, reader: BinaryReader):
+	def open(self, reader: BinaryReader) -> None:
 		if self._open:
 			return
 
 		self._reader = reader
 		self._open = True
 
-	def close(self):
+	def close(self) -> None:
 		if not self._open:
 			return
 
@@ -87,7 +88,7 @@ class BaseFile:
 		
 		return [(self.offset, self.size, str(self.path), self._reader)]
 
-	def export_raw_file(self, directory: Path):
+	def export_raw_file(self, directory: Path) -> None:
 		if not self._open or self._reader == None:
 			return
 
@@ -99,17 +100,20 @@ class BaseFile:
 
 		self._reader.seek(reader_pos)
 
-	def export_file(self, directory: Path):
+	def export_file(self, directory: Path) -> None:
 		if not self._open or self._reader == None:
 			return
 
 		reader_pos: int = self._reader.seek(self.offset)
 
 		path: Path = (directory / self.name).with_suffix(Format.formatToExtension(self.type))
-		path.parent.mkdir(exist_ok = True)
+		path.parent.mkdir(parents = True, exist_ok = True)
 		path.write_bytes(self._reader.read_chunk(self.size))
 
 		self._reader.seek(reader_pos)
+
+	def export_contents(self, directory: Path) -> None:
+		return self.export_file(directory)
 
 	def get_attributes(self) -> list[str]:
 		return []
@@ -132,7 +136,7 @@ class BaseArchiveFile(BaseFile):
 
 		self.files = []
 
-	def scan_file(self):
+	def scan_file(self) -> None:
 		pass
 
 	def get_files(self) -> list[BaseFile]:
@@ -140,9 +144,25 @@ class BaseArchiveFile(BaseFile):
 			return []
 		return self.files
 
-	def export_file(self, directory: Path):
+	def export_file(self, directory: Path) -> None:
 		for file in self.files:
 			file.export_raw_file((directory / self.name).with_suffix(""))
+
+	def export_contents(self, directory: Path, name: str | None = None) -> None:
+		if not self._open or self._reader == None:
+			return
+
+		reader_pos: int = self._reader.seek(self.offset)
+		
+		path: Path = (directory / (name or self.name)).with_suffix("") / f"{name or self.name}.{Format.formatToExtension(self.type)}.json" 
+		path.parent.mkdir(parents = True, exist_ok = True)
+		with open(path, "w") as file:
+			dump(self.dump_data(), file, indent="\t")
+
+		for file in self.files:
+			file.export_contents((directory / (name or self.name)).with_suffix(""))
+		
+		self._reader.seek(reader_pos)
 
 	def close(self) -> None:
 		if self._content_ready:

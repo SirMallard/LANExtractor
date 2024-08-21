@@ -1,0 +1,65 @@
+import std.sys;
+
+namespace Havok {
+    struct LocalFixup {
+        s32 pointer, destination;
+        
+        if (pointer != -1) {
+            char update[4] @ pointer + parent.absolute_data_start + parent.parent.offset [[color("FF0000")]];
+        }
+    };
+    
+    struct GlobalFixup {
+        s32 pointer, section_id, destination;
+        
+        if (pointer != -1) {
+            char update[4] @ pointer + parent.absolute_data_start + parent.parent.offset [[color("FF0000")]];
+        }
+    };
+    
+    struct VirtualFixup {
+        s32 data_offset, section_id, classname_offset;
+        
+        char classname[] @ 208 + classname_offset + parent.parent.offset;
+        char start[4] @ data_offset + parent.absolute_data_start + parent.parent.offset;
+    };
+
+    struct Section {
+        char tag[20] [[hidden]];
+        str name = tag [[export]];
+        u32 absolute_data_start;
+        u32 local_fixup_offset, global_fixup_offset, virtual_fixup_offset;
+        u32 export_offset, import_offset;
+        u32 buffer_size;
+        
+        u32 eof = (export_offset == -1 ? import_offset : export_offset);
+        u32 num_local_fixups = (global_fixup_offset - local_fixup_offset) / 8;
+        u32 num_global_fixups = (virtual_fixup_offset - global_fixup_offset) / 12;
+        u32 num_virtual_fixups = (eof - virtual_fixup_offset) / 12;
+        
+        LocalFixup local_fixups[num_local_fixups] @ local_fixup_offset + absolute_data_start + parent.offset;
+        GlobalFixup global_fixups[num_global_fixups] @ global_fixup_offset + absolute_data_start + parent.offset;
+        VirtualFixup virtual_fixups[num_virtual_fixups] @ virtual_fixup_offset + absolute_data_start + parent.offset;
+    };
+
+    struct Havok {
+        u32 offset = $;
+    
+        char magic[8];
+        u32 user_tag, version;
+        u8 pointer_size;
+        bool little_endian, reuse_base_class_padding, empty_base_class_optimisation;
+        s32 num_chunks;
+        s32 content_section_index, content_section_offset;
+        s32 content_class_name_section_index, content_class_name_section_offset;
+        char content_version[16];
+        u32 flags;
+        s16 max_predicate;
+        s16 predicate_array_size_plus_padding;
+        
+        Section sections[num_chunks];
+    };
+}
+
+PTM::PTM ptm @ 0x00;
+Havok::Havok havok @ 0x110;

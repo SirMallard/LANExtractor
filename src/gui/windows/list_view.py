@@ -46,6 +46,8 @@ def render_files(app_data: AppData):
 					app_data.export_file(file)
 				if imgui.menu_item("Export raw file", "Ctrl+Shift+E", False)[0]:
 					app_data.export_raw_file(file)
+				if imgui.menu_item("Export contents", "Ctrl+Alt+E", False)[0]:
+					app_data.export_contents(file)
 				imgui.separator()
 				imgui.menu_item("Copy", "Ctrl+C", False)
 				imgui.end_popup()

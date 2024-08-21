@@ -1,7 +1,6 @@
 from json import dump
 
-
-def main():
+def convert_dict():
 	from LANoireTools.newscripts.dictionaries import FILE_FULLNAME_DICTIONARY, OBJECT_TYPES_DICTIONARY
 	# FILE_FULLNAME_DICTIONARY: dict[int, str] = {}
 
@@ -27,6 +26,8 @@ def main():
 			"file_name_hashes": file_name_hashes
 		}, file, indent="\t")
 
+def main():
+	print()
 
 if __name__ == "__main__":
 	main()

@@ -4,9 +4,8 @@ from files.base import BaseFile
 
 class PTM(BaseFile):
 	type: Format = Format.PTM
-	version: int
 
-	pointer_offset: int
+	data_offset: int
 
 	pointer_addresses: list[int]
 	pointers: list[int]
@@ -22,8 +21,8 @@ class PTM(BaseFile):
 		reader_pos: int = self._reader.seek(self.offset)
 
 		self.header = self._reader.read_string(4)
-		self.version = self._reader.read_uint32()
-		self.pointer_offset = self._reader.read_uint32()
+		assert self._reader.read_uint32() == 7, "Version should be 7."
+		self.data_offset = self._reader.read_uint32()
 
 		self.pointer_addresses = []
 		self.pointers = []
@@ -32,32 +31,32 @@ class PTM(BaseFile):
 		pointer_address: int = 0
 		data_type: int = 0
 
-		while False:
+		while True:
 			num_pointers: int = self._reader.read_uint16()
 
 			for _ in range(num_pointers):
 				value: int = self._reader.read_uint16()
 				if value & 0x8000:
+					self._reader.seek(-2, 1)
 					data: int = self._reader.read_uint32()
 					data_shift: int = (data & 0x80000000) | (data & 0x80000000 >> 16)
 					pointer_address = data_shift ^ data
 				else:
 					pointer_address += 4 * value
 				
-				pointer: int = pointer_address + self.pointer_offset
-				self.pointer_addresses.append(pointer)
-				self.pointers.append(self._reader.read_uint32(pointer) + self.pointer_offset)
+				address: int = pointer_address + self.data_offset
+				self.pointer_addresses.append(address)
+				self.pointers.append(self._reader.read_uint32(self.offset + address) + self.data_offset)
 				self.pointer_data_types.append(data_type)
 
 			block_end: int = self._reader.tell() + self._reader.tell() & 2
 
-			if block_end + 6 >= self.pointer_offset:
+			if block_end + 6 >= self.data_offset:
 				break
 
-			# print("Another block?")
-			break
-			# self._reader.read_pad(self._reader.tell() & 2)
-			# data_type = self._reader.read_uint32()					
+			self._reader.read_pad(self._reader.tell() & 2)
+			data_type = self._reader.read_uint32()			
+			break		
 
 		self._reader.seek(reader_pos)
 
@@ -74,6 +73,7 @@ class PTM(BaseFile):
 		if not self._content_ready:
 			return super().dump_data()
 		return super().dump_data() | {
-			"version": self.version,
-			"pointer_offset": self.pointer_offset
+			"data_offset": self.data_offset,
+			"pointer_addresses": self.pointer_addresses,
+			"pointers": self.pointers
 		}

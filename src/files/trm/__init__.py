@@ -1,8 +1,9 @@
 from archives.archive import Archive
-from files.vram import VRAM
+from files.trm.main_texture import UniqueTexture
+from files.trm.vram import VRAM
 from utils.dictionaries import FILE_NAME_HASHES
 from utils.formats import Format
-from files.base import BaseFile
+from files.base import BaseArchiveFile, BaseFile
 
 from typing import Any
 
@@ -18,7 +19,7 @@ class Entry():
 		self.offset = offset
 		self.size = size
 
-class TRM(BaseFile):
+class TRM(BaseArchiveFile):
 	type: Format = Format.TRM
 	contains_sub_files: bool = True
 
@@ -27,14 +28,11 @@ class TRM(BaseFile):
 	num_files: int
 
 	entries: list[Entry]
-	files: list[BaseFile]
-	content_size: int
 
-	file_data: dict[str, Any]
+	file_data: dict[str, BaseFile]
 	
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
-		self.content_size = 0
 		self.file_data = {}
 
 	def read_header(self) -> None:
@@ -51,14 +49,13 @@ class TRM(BaseFile):
 		self.num_files = self._reader.read_uint32()
 
 		self.entries = [None] * self.num_files # type: ignore
-
 		for i in range(self.num_files):
 			hash: int = self._reader.read_uint32()
 			size: int = self._reader.read_uint32()
 			offset: int = self._reader.read_uint32()
 			if offset % 0x10:
 				offset = self.size1 + offset & 0xFFFFFFF0
-			self.content_size += size
+			offset += self.offset
 			entry: Entry = Entry(hash, offset, size)
 			self.entries[i] = entry
 
@@ -74,41 +71,19 @@ class TRM(BaseFile):
 		for i in range(self.num_files):
 			entry: Entry = self.entries[i]
 
-			if entry.offset % 16:
-				assert entry.offset % 16 == 1, "Offset should be 1."
-
-			file: BaseFile
+			file: BaseFile | None = None
 			match entry.hash:
 				# case 1181384334: #LowLODCollision
 				# case 3890050462: #LowLODHierarchy
 
 				# case 2672145205: #LowLodGraphicsMain
-				case 1475192112: #LowLodGraphicsVRAM
-					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
+				# case 416037040: #MidLodGraphicsMain				
+				# case 710690163: #HighLodGraphicsMain				
 
-				# case 416037040: #MidLodGraphicsMain
-				case 3496226485: #MidLodGraphicsVRAM
-					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
-				
-				# case 710690163: #HighLodGraphicsMain
-				case 3807662966: #HighLodGraphicsVRAM
-					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
-				
-				# case 1188501517: #TextureMain
-				case 2390691336: #TextureVRAM
-					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
-				
-				# case 962647487: #UniqueTextureMain
-				case 4056466362: #UniqueTextureVRAM
-					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
-				
-				# case 4236854250: #GraphicsMain
-				case 874599919: #GraphicsVRAM
-					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
-				
+				# case 1188501517: #TextureMain				
+				# case 962647487: #UniqueTextureMain				
+				# case 4236854250: #GraphicsMain				
 				# case 388805088: #BreakableGraphicsMain
-				case 3750012901: #BreakableGraphicsVRAM
-					file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
 				
 				# case 1540170686: #Collision
 				# case 2306622947: #BreakableCollision
@@ -126,36 +101,39 @@ class TRM(BaseFile):
 				# case 586247102: #cloth
 				# case 2381493261: #UNKNOWN
 				case _:
-					file = Archive.create_file(self._reader, self.archive, entry.hash, entry.offset, entry.size)
+					if entry.name.endswith("VRAM"):
+						file = VRAM(self.archive, entry.hash, entry.offset, entry.size)
 
-			
+			if file == None:
+				continue
 
 			file.parent_file = self
 			file.open(self._reader)
 			file.read_header()
-			file.read_contents()
 			self.files[i] = file
-			self.file_data[entry.name] = file
+			self.file_data[file.name] = file
 
-		# for entry in self.entries:
-		# 	if entry.hash == 962647487:
-		# 		self._reader.seek(entry.offset + 4)
-		# 		num_textures: int = self._reader.read_uint32()
+		for i in range(self.num_files):
+			if self.files[i] == None: # type: ignore
+				entry = self.entries[i]
 
-		# 		texture_data: list[dict[str, int]] = [None] * num_textures # type: ignore
+				file = None
+				match entry.hash:
+					case 962647487: #UniqueTextureMain
+						file = UniqueTexture(self.archive, entry.hash, self.file_data.get("UniqueTextureVRAM"), entry.offset, entry.size) # type: ignore
+					case _:
+						file = Archive.create_file(self._reader, self.archive, entry.hash, entry.offset, entry.size)
 
-		# 		for i in range(num_textures):
-		# 			offset: int = self._reader.read_uint32()
-		# 			self._reader.read_pad(4)
-		# 			hash: int = self._reader.read_uint32()
+				if file == None: # type: ignore
+					continue
 
-		# 			texture_data[i] = {
-		# 				"offset": offset,
-		# 				"hash": hash,
-		# 			}
+				file.parent_file = self
+				file.open(self._reader)
+				file.read_header()
+				file.read_contents()
+				self.files[i] = file
+				self.file_data[file.name] = file
 
-				
-		# 		self.file_data["UniqueTextureMain"] = texture_data
 
 		self._reader.seek(reader_pos)
 		self._content_ready = True
@@ -171,9 +149,8 @@ class TRM(BaseFile):
 			"entries": [{
 				"hash": entry.hash,
 				"name": entry.name,
-				"start_offset": entry.offset,
+				"offset": entry.offset,
 				"size": entry.size,
-				"end_offset": entry.offset + entry.size
 			} for entry in sorted(self.entries, key = lambda entry: entry.offset)],
 			"files": [file.dump_data() for file in self.files],
 		}

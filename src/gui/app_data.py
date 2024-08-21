@@ -279,3 +279,13 @@ class AppData:
 			file.export_file(Path("export"))
 			file.close()
 			file.archive.close()
+
+	def export_contents(self, file_node: FileNode):
+		if file := file_node.file:
+			file.archive.open()
+			file.archive.open_file(file)
+			file.read_header()
+			file.read_contents()
+			file.export_contents(Path("export"))
+			file.close()
+			file.archive.close()

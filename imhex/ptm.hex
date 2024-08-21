@@ -1,0 +1,51 @@
+import std.sys;
+
+namespace PTM {
+    u32 offset = 0;
+    u32 pointer_address = 0;
+
+    struct Pointer {
+        u16 value;
+        
+        if (value & 0x8000) {
+            
+        } else {
+            pointer_address += value * 4;
+        }
+        
+        u32 address = pointer_address + parent.parent.pointer_offset [[export]];
+        u32 offset @ address [[hidden]];
+        u32 pointer = offset + parent.parent.pointer_offset [[export]];
+        if (pointer < 0x2e8) {
+            char unknown[4] @ pointer [[color("00FF00")]];
+        }
+    };
+
+    struct Block {
+        u16 num_pointers;
+        pointer_address = 0;
+        
+        Pointer pointers[num_pointers];
+        
+        u32 end_byte = $ + ($ & 2) [[export]];
+        
+        if (end_byte + 6 >= parent.pointer_offset) {
+            break;
+        }
+        
+        u32 data_type @ end_byte;
+        $ = end_byte + 4;
+    };
+
+    struct PTM {
+        char magic[4];
+        u32 version [[hidden]];
+        std::assert(version == 7, "Version should be 7.");
+        u32 pointer_offset;
+        
+        pointer_address = 0;
+        Block blocks[while (true)];
+    };
+}
+
+PTM::PTM ptm @ 0x00;

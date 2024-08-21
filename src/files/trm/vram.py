@@ -1,12 +1,10 @@
+from pathlib import Path
 from typing import Any
-from files.ptm import PTM
 from utils.formats import Format
 from files.base import BaseFile
 
 class VRAM(BaseFile):
 	type: Format = Format.VRAM
-
-	main_file: PTM
 	
 	def __init__(self, archive: Any, hash: int, offset: int = 0, size: int = 0) -> None:
 		super().__init__(archive, hash, offset, size)
@@ -16,7 +14,6 @@ class VRAM(BaseFile):
 			return
 		
 		reader_pos: int = self._reader.seek(self.offset)
-
 		self.header = "vram"
 
 		self._reader.seek(reader_pos)
@@ -29,6 +26,9 @@ class VRAM(BaseFile):
 
 		self._reader.seek(reader_pos)
 		self._content_ready = True
+
+	def export_contents(self, directory: Path) -> None:
+		return
 
 	def dump_data(self) -> dict[str, Any]:
 		if not self._content_ready:

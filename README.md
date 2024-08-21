@@ -141,8 +141,9 @@ struct {
 	char magic[4];
 	uint16_t version; // always 7
 	uint16_t num_chunks; // 1 chunk if not compressed
-	uint32_t unk; // always 0
+	uint32_t num_objects; // usually 0 otherwise 2 when not the first segment file.
 
+	uint32_t objects[num_objects];
 	sges_chunk chunks[num_chunks];
 } sges_header;
 ```
@@ -182,7 +183,7 @@ struct {
 } trm_entry;
 
 struct {
-	char magic[4];
+	char magic[4]; // trm#
 	uint32_t version; // always 1
 	uint32_t size1; // PTM and data files
 	uint32_t size2; // VRAM files - sometimes larger than the file size
@@ -249,8 +250,30 @@ vm_hlywd_001.trunk.pc
 - UniqueTextureVRAM
 - 2381493261
 
+#### Collision
+`Havok` Contains a Havok binary file format.
+- https://reshax.com/topic/198-havok-middleware/
+- https://github.com/PredatorCZ/HavokLib/blob/master/source/format_old.hpp
+- https://web.archive.org/web/*/http://anarchy.cn/manual*
+- https://web.archive.org/web/20160822121450/http://anarchy.cn/manual/12/havoksdk_programmersmanual/classes.html
+
 ### PTM
 `PolyType Model?` ` Bones, Collisions, Hierarchy`
 In most [`TRM`](#trm) files. Contains Havok file collision data with unknown header. Called `uber`?
 - https://forum.xen-tax.com/viewtopic.php@t=6623&start=195.html
 - https://reshax.com/topic/198-havok-middleware/
+
+```C++
+struct {
+	uint16_t num_pointers;
+	uint16_t pointers[num_pointers];
+} ptm_block;
+
+struct {
+	char magic[4]; // ptM#
+	uint32_t version; // always 7
+	uint32_t data_offset;
+
+	ptm_block block;
+} ptm_header;
+```

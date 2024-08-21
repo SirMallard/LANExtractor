@@ -17,7 +17,7 @@ DUMP_ARCHIVE: bool = False
 PICKLE_DATA: bool = False
 LIMIT_ARCHIVE: bool = True
 
-ARCHIVE_NAMES: list[str] = ["vehicles.big.pc"] # ["characters.big.pc", "dlc.dlc5.big.pc", "dlc.dlc6.big.pc", "dlc.dlc8.big.pc", "out.wad.pc", "props.big.pc", "props.high.big.pc", "ui_streamed_textures.big.pc", "vehicles.big.pc"]
+ARCHIVE_NAMES: list[str] = ["out.wad.pc"] # ["characters.big.pc", "dlc.dlc5.big.pc", "dlc.dlc6.big.pc", "dlc.dlc8.big.pc", "out.wad.pc", "props.big.pc", "props.high.big.pc", "ui_streamed_textures.big.pc", "vehicles.big.pc"]
 
 def read_game_files() -> dict[str, Archive]:
 	print("Reading game files")
@@ -140,7 +140,7 @@ def main():
 		write_pickle_file(archives)
 
 if __name__ == "__main__":
-	if False:
+	if True:
 		from gui import Gui
 		gui = Gui()
 		gui.run()

@@ -1,0 +1,66 @@
+import std.sys;
+
+namespace Main {
+    struct UniqueTextureFile {
+        u32 offset;
+        u32 zero [[hidden]];
+        u32 hash;
+        
+        std::assert(zero == 0, "Padding should be 0.");
+    };
+
+    struct UniqueTexture {
+        char magic[4];
+        u32 num_files;
+        
+        UniqueTextureFile files[num_files];
+    };
+}
+
+namespace PTM {
+    struct PTM {
+        char magic[4];
+        u32 version [[hidden]];
+        u32 pointer_offset;
+        
+        std::assert(version == 7, "Version should be 7.");
+    };
+}
+
+namespace TRM {
+    struct File {
+        u32 hash;
+        u32 size;
+        u32 offset;
+        
+        if (offset % 16 == 0) {
+            u64 start @ offset;
+            u64 end @ (offset + size - 8);
+        }
+                    
+        match (hash) {
+            (962647487): Main::UniqueTexture data @ offset;
+            (416037040): PTM::PTM data @ offset;
+            (710690163): PTM::PTM data @ offset;
+            (2672145205): PTM::PTM data @ offset;
+            (4202309806): PTM::PTM data @ offset;
+            (1540170686): PTM::PTM data @ offset;
+        }
+    };
+    
+    struct TRM {
+        char magic[4];
+        u32 version [[hidden]];
+        u32 size1;
+        u32 size2;
+        u32 zero [[hidden]];
+        u32 num_files;
+        
+        std::assert(version == 1, "Version should be 1.");
+        std::assert(zero == 0, "Padding should be 0.");
+        
+        File files[num_files];
+    };
+}
+
+TRM::TRM trm @ 0x00;

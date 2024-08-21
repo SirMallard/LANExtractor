@@ -5,6 +5,7 @@ from typing import Any
 class BinaryReader():
 	file: BufferedIOBase
 	endian: str
+	size: int
 
 	buffer: BytesIO
 
@@ -32,6 +33,11 @@ class BinaryReader():
 
 	def __init__(self, file: BufferedIOBase) -> None:
 		self.file = file
+		self.file.seek(0, 2)
+
+		self.size = self.file.tell()
+		self.file.seek(0)
+
 		self.endian = "@"
 		self.buffer = BytesIO()
 
@@ -52,7 +58,7 @@ class BinaryReader():
 		if offset >= 0:
 			self.buffer.flush()
 			pos: int = self.seek(offset)
-			data = self.buffer.read(length)
+			data = self.file.read(length)
 			self.seek(pos)
 		elif self.buffer.getbuffer().nbytes >= length:
 			self.file.seek(length, 1)

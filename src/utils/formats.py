@@ -101,7 +101,7 @@ class Format(Enum):
 				from files.base import BaseAudioFile
 				return BaseAudioFile
 			case Format.VRAM:
-				from files.vram import VRAM
+				from files.trm.vram import VRAM
 				return VRAM
 			case _:
 				from files.base import BaseFile
