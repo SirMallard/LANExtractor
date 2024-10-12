@@ -27,7 +27,6 @@ class Chunk():
 
 class SGES(BaseArchiveFile):
 	type: Format = Format.SGES
-	contains_sub_files: bool = True
 
 	size1: int
 	size2: int

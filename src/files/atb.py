@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 from utils.dictionaries import ATB_POINTER_TYPES, ATB_TYPES, OBJECT_NAME_HASHES
 from utils.formats import Format
@@ -161,6 +162,13 @@ class ATB(BaseFile):
 			return []
 		
 		return [self.read_variables(type)[1] for _ in range(size)]
+
+	def export_contents(self, directory: Path) -> None:
+		for i in range(self.num_containers):
+			container: dict[str, Any] = self.read_object()
+			self.containers[i] = container
+
+		return super().export_contents(directory)
 
 	def dump_data(self) -> dict[str, Any]:
 		if not self._content_ready:

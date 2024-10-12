@@ -21,7 +21,6 @@ class Entry():
 
 class TRM(BaseArchiveFile):
 	type: Format = Format.TRM
-	contains_sub_files: bool = True
 
 	size1: int
 	size2: int

@@ -25,6 +25,7 @@ class Format(Enum):
 	RNM = 17
 	WAV = 18
 	VRAM = 19
+	HAVOK = 20
 
 	@staticmethod
 	def headerToFormat(header: str) -> Enum:
@@ -61,6 +62,8 @@ class Format(Enum):
 				return Format.RNM
 			case "VRAM":
 				return Format.VRAM
+			case "W\xe0\xe0W":
+				return Format.HAVOK
 			case _:
 				return Format.UNKNOWN
 
@@ -103,6 +106,9 @@ class Format(Enum):
 			case Format.VRAM:
 				from files.trm.vram import VRAM
 				return VRAM
+			case Format.HAVOK:
+				from files.trm.havok import HAVOK
+				return HAVOK
 			case _:
 				from files.base import BaseFile
 				return BaseFile
@@ -133,7 +139,7 @@ class Format(Enum):
 			case Format.CBF1:
 				return ".contents"
 			case Format.PTM:
-				return ".pack"
+				return ".uber"
 			case Format.TRLA:
 				return ".ids"
 			case Format.MP3:
@@ -144,6 +150,8 @@ class Format(Enum):
 				return ".wav"
 			case Format.VRAM:
 				return ".vram"
+			case Format.HAVOK:
+				return ".hkx"
 			case _:
 				return ".unknown"
 

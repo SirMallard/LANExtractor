@@ -6,7 +6,6 @@ from binary_reader import BinaryReader
 
 from typing import Any
 
-
 class BaseFile:
 	type: Format = Format.UNKNOWN
 

@@ -49,3 +49,125 @@ namespace PTM {
 }
 
 PTM::PTM ptm @ 0x00;
+
+//
+
+import std.sys;
+
+namespace PTM {
+    u32 offset = 0;
+    u32 pointer_address = 0;
+    u32 total = 0;
+
+    struct Pointer {
+        u16 value;
+        total += value;
+        
+        u32 address = pointer_address + parent.parent.pointer_offset [[export]];
+        u32 type @ address;
+        char data[4 * value] @ address + 4;
+        
+        if (value & 0x8000) {
+            
+        } else {
+            pointer_address += value * 4 + 4;
+        }
+    };
+
+    struct Block {
+        u16 num_pointers;
+        total = 0;
+        
+        Pointer pointers[num_pointers];
+        u32 total_value = total [[export]];
+        
+        u32 end_byte = $ + ($ & 2) [[export]];
+        
+        if (end_byte + 6 >= parent.pointer_offset) {
+            break;
+        } else {
+            break;
+            pointer_address += parent.pointer_offset;    
+            u32 data_type @ end_byte;
+            $ = end_byte + 4;
+        }
+    };
+
+    struct PTM {
+        char magic[4];
+        u32 version [[hidden]];
+        std::assert(version == 7, "Version should be 7.");
+        u32 pointer_offset;
+        
+        pointer_address = 0;
+        Block blocks[while (true)];
+    };
+}
+
+PTM::PTM ptm @ 0x00;
+
+//
+
+import std.sys;
+
+namespace PTM {
+    u32 offset = 0;
+    u32 pointer_address = 0;
+    u32 total = 0;
+
+    struct Pointer {
+        u16 value;
+        total += 4 * value;
+        
+        u32 address = pointer_address + parent.parent.pointer_offset [[export]];
+        if (value > 0) {
+            u8 type @ address;
+            u8 section @ address + 1;
+            u16 zero @ address + 2 [[hidden]];
+            //std::assert(type > 0, "Type should be >0.");
+            std::assert(zero == 0, "Should be 0.");
+        }
+        if (value > 1) {
+            char data[4 * (value - 1)] @ address + 4;
+        }
+        
+        if (value & 0x8000) {
+            std::print("0x8000");
+        } else {
+            pointer_address += value * 4;
+        }
+    };
+
+    struct Block {
+        u16 num_pointers;
+        total = 0;
+        
+        Pointer pointers[num_pointers];
+        u32 total_value = total [[export]];
+        
+        u32 end_byte = $ + ($ & 2) [[export]];
+        
+        if (end_byte + 6 >= parent.pointer_offset) {
+            break;
+        } else {
+            pointer_address += parent.pointer_offset;
+            u32 data_type @ end_byte;
+            if (data_type % 16) {
+                break;
+            }
+            $ = end_byte + 4;
+        }
+    };
+
+    struct PTM {
+        char magic[4];
+        u32 version [[hidden]];
+        std::assert(version == 7, "Version should be 7.");
+        u32 pointer_offset;
+        
+        pointer_address = 0;
+        Block blocks[while (true)];
+    };
+}
+
+PTM::PTM ptm @ 0x00;

@@ -68,7 +68,6 @@ class Sample(BaseAudioFile):
 
 class FSB4(BaseArchiveFile):
 	type: Format = Format.FSB4
-	contains_sub_files: bool = True
 
 	num_samples: int
 	shdr_size: int

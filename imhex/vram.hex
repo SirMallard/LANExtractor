@@ -1,0 +1,42 @@
+import std.sys;
+
+struct Vector2 {
+    u16 _x;
+    u16 _y;
+    
+    float x = float(_x) [[export]];
+    float y = float(_y) [[export]];
+};
+
+struct Vector3 {
+    u16 _x;
+    u16 _y;
+    u16 _z;
+    
+    float x = float(_x) [[export]];
+    float y = float(_y) [[export]];
+    float z = float(_z) [[export]];
+};
+
+struct Block {
+    Vector3 position;
+    
+    u16 unk0 [[hidden]];
+    std::assert(unk0 == 0x7fff, "Should be 0xff7f.");
+    
+    Vector3 normal;
+    
+    u16 unk1 [[hidden]];
+    u16 unk2 [[hidden]];
+    u16 unk3 [[hidden]];
+    std::assert(unk1 == 0x0000, "Should be 0x0000.");
+    std::assert(unk2 == 0x0000, "Should be 0x0000.");
+    std::assert(unk3 == 0xff00, "Should be 0x00ff.");
+    
+    Vector2 uv;
+};
+
+Block block_0[25] @ 0x00;
+Block block_1[269] @ 0x30c;
+Block block_2[24] @ 0x20e4;
+Block block_3[56] @ 0x236c;

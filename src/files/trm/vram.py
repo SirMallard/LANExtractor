@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any
 from utils.formats import Format
 from files.base import BaseFile
@@ -26,9 +25,6 @@ class VRAM(BaseFile):
 
 		self._reader.seek(reader_pos)
 		self._content_ready = True
-
-	def export_contents(self, directory: Path) -> None:
-		return
 
 	def dump_data(self) -> dict[str, Any]:
 		if not self._content_ready:

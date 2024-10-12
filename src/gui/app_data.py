@@ -205,7 +205,7 @@ class AppData:
 		archive_node.is_archive = True
 		archive_node.type = "Archive"
 
-		self.set_status_text("file_scan", f"Scanning archive: {path.name}...")
+		self.set_status_text("archive_scan", f"Scanning archive: {path.name}...")
 		
 		archive: Archive
 		if path.suffixes[-2] == ".big":
@@ -224,7 +224,7 @@ class AppData:
 		for file in archive.files:
 			parent_node: FolderNode | None = archive_node
 
-			self.set_status_text("archive_scan", f"Scanning game file: {file.name}...")
+			self.set_status_text("file_scan", f"Scanning game file: {file.name}...")
 
 			current_path: Path = Path("")
 			for part in file.path.parts[: -1]:
